@@ -78,7 +78,7 @@ ovlcmd({
 
         const fiche = generateFicheDuel(duelsEnCours[duelKey]);
         await ovl.sendMessage(ms_org, {
-          video: { url: 'https://files.catbox.moe/udf9fe.mp4' },
+          video: { url: 'https://files.catbox.moe/dye6xo.mp4' },
           gifPlayback: true,
           caption: `
  🌀Préparation de match...`
