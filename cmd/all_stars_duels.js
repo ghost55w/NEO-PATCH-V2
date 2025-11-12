@@ -81,7 +81,7 @@ ovlcmd({
           video: { url: 'https://files.catbox.moe/udf9fe.mp4' },
           gifPlayback: true,
           caption: `
- Préparation de match...`
+ 🌀Préparation de match...`
         }, { quoted: ms });
         await ovl.sendMessage(ms_org, { image: { url: areneT.image }, caption: fiche }, { quoted: ms });
     } catch (e) {
