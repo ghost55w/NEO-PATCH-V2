@@ -50,10 +50,8 @@ function generateFicheDuel(duel) {
 
 *⚠️ Vous avez 🔟 tours max pour finir votre Adversaire !*
 *Sinon la victoire sera donnée par décision selon l'offensive !*
-
-▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔░▒▒▒▒░░
-*🔅ALL STARS JUMP BATTLE ARENA🌀*
-> NEOverse🔹 2025 Update 🎮`;
+╰───────────────────
+                 *AS JUMP🌀BATTLE ARENA🔅*`;
 }
 
 ovlcmd({
@@ -82,7 +80,7 @@ ovlcmd({
         await ovl.sendMessage(ms_org, {
           video: { url: 'https://files.catbox.moe/udf9fe.mp4' },
           gifPlayback: true,
-          caption: `*▶️NEO live🎙️ :* \`Direct TV\`
+          caption: `
  Préparation de match...`
         }, { quoted: ms });
         await ovl.sendMessage(ms_org, { image: { url: areneT.image }, caption: fiche }, { quoted: ms });
