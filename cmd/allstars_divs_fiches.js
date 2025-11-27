@@ -22,6 +22,11 @@ function add_fiche(nom_joueur, jid, image_oc, joueur_div) {
     try {
       const data = await getData({ jid: jid });
 
+      // Valeurs par défaut si undefined
+      data.niveau_xp = data.niveau_xp ?? 0;
+      data.close_combat = data.close_combat ?? 0;
+      data.cards = data.cards ?? "";
+
       if (!arg.length) {
         const fiche = `░▒▒░░▒░ *👤N E O P L A Y E R 🎮*
 ▔▔▔▔▔▔▔▔▔▔▔▔▔░▒▒▒▒░░▒░
@@ -61,36 +66,36 @@ function add_fiche(nom_joueur, jid, image_oc, joueur_div) {
 ⌬ *Close combat👊🏻:*  ▱▱▱▱▬▬▬ ${data.close_combat}
 ⌬ *Attaques🌀:*     ▱▱▱▱▬▬▬ ${data.attaques}
 
-░▒░▒░ CARDS 🎴: ${data.total_cards}
+░▒░▒░ CARDS 🎴: ${data.cards.split("\n").length}
 ▔▔▔▔▔▔▔▔▔▔▔░▒▒▒▒░░▒░
-🎴 ${data.cards}
+🎴 ${data.cards.split("\n").join(" • ")}
 ╰───────────────────
                 *⌬𝗡SL PRO ESPORTS™🏆*`;
 
- await ovl.sendMessage(ms_org, {
- video: { url: 'https://files.catbox.moe/0qzigf.mp4' },
- gifPlayback: true,
- caption: ""
-  }, { quoted: ms });
+        await ovl.sendMessage(ms_org, {
+          video: { url: 'https://files.catbox.moe/0qzigf.mp4' },
+          gifPlayback: true,
+          caption: ""
+        }, { quoted: ms });
 
-  return ovl.sendMessage(ms_org, {
-  image: { url: data.oc_url },
-  caption: fiche
-  }, { quoted: ms });
+        return ovl.sendMessage(ms_org, {
+          image: { url: data.oc_url },
+          caption: fiche
+        }, { quoted: ms });
       }
 
-  if (!prenium_id) return await repondre("⛔ Accès refusé ! Seuls les membres de la NS peuvent faire ça.");
+      if (!prenium_id) return await repondre("⛔ Accès refusé ! Seuls les membres de la NS peuvent faire ça.");
 
-  const updates = await processUpdates(arg, jid);
-  await updatePlayerData(updates, jid);
+      const updates = await processUpdates(arg, jid);
+      await updatePlayerData(updates, jid);
 
-  const message = updates.map(u =>
-  `🛠️ *${u.colonne}* modifié : \`${u.oldValue}\` ➤ \`${u.newValue}\``
-   ).join('\n');
+      const message = updates.map(u =>
+        `🛠️ *${u.colonne}* modifié : \`${u.oldValue}\` ➤ \`${u.newValue}\``
+      ).join('\n');
 
-   await repondre("✅ Fiche mise à jour avec succès !\n\n" + message);
+      await repondre("✅ Fiche mise à jour avec succès !\n\n" + message);
 
-   } catch (err) {
+    } catch (err) {
       console.error("Erreur:", err);
       await repondre("❌ Une erreur est survenue. Vérifie les paramètres.");
     }
@@ -117,7 +122,31 @@ async function processUpdates(args, jid) {
       throw new Error(`❌ La colonne '${object}' n'existe pas.`);
     }
 
-    const oldValue = data[object];
+    const oldValue = data[object] ?? "";
+
+    // --- Gestion avancée du champ "cards" ---
+    if (object === "cards") {
+      let list = oldValue.split("\n").filter(x => x.trim() !== "");
+      const fullText = texte.join(" ");
+      const items = fullText.split(",").map(x => x.trim()).filter(x => x.length > 0);
+
+      if (signe === "+") {
+        for (const card of items) {
+          if (!list.includes(card)) list.push(card);
+        }
+      } else if (signe === "-") {
+        for (const card of items) {
+          list = list.filter(c => c !== card);
+        }
+      } else {
+        throw new Error("❌ Le champ 'cards' accepte uniquement '+' et '-'");
+      }
+
+      const newValue = list.join("\n");
+      updates.push({ colonne: "cards", oldValue, newValue });
+      continue; // Empêche le traitement normal
+    }
+
     let newValue;
 
     if (signe === '+' || signe === '-') {
@@ -168,6 +197,7 @@ async function initFichesAuto() {
 
 initFichesAuto();
 
+// Commandes add_fiche et del_fiche (inchangées)
 ovlcmd({
   nom_cmd: "add_fiche",
   alias: [],
