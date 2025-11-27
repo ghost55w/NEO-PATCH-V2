@@ -111,23 +111,26 @@ async function processUpdates(args, jid) {
   while (i < args.length) {
     const object = args[i++];
     const signe = args[i++];
-    const valeur = args[i++];
-    const texte = valeur !== undefined ? [valeur] : [];
 
-    while (i < args.length && !['+', '-', '=', 'add', 'supp'].includes(args[i]) &&
-      !columns.includes(args[i])) {
+    // On récupère tous les mots suivants comme valeur jusqu'au prochain signe ou colonne
+    let texte = [];
+    while (i < args.length && !['+', '-', '=', 'add', 'supp'].includes(args[i]) && !columns.includes(args[i])) {
+      texte.push(args[i++]);
     }
 
-    if (!Object.keys(data.dataValues).includes(object)) {
+    if (!columns.includes(object)) {
       throw new Error(`❌ La colonne '${object}' n'existe pas.`);
     }
 
-    const oldValue = data[object] ?? "";
+    const oldValue = data[object];
+    let newValue;
 
-    // --- Gestion avancée du champ "cards" ---
+    // --- Gestion spéciale pour les cards ---
     if (object === "cards") {
-      let list = oldValue.split("\n").filter(x => x.trim() !== "");
-      const fullText = texte.join(" ");
+      const old = oldValue || "";
+      let list = old.split("\n").filter(x => x.trim() !== "");
+
+      const fullText = texte.join(" "); // tout le texte après le signe
       const items = fullText.split(",").map(x => x.trim()).filter(x => x.length > 0);
 
       if (signe === "+") {
@@ -142,33 +145,43 @@ async function processUpdates(args, jid) {
         throw new Error("❌ Le champ 'cards' accepte uniquement '+' et '-'");
       }
 
-      const newValue = list.join("\n");
-      updates.push({ colonne: "cards", oldValue, newValue });
-      continue; // Empêche le traitement normal
+      newValue = list.join("\n");
+
+      updates.push({
+        colonne: "cards",
+        oldValue: old,
+        newValue
+      });
+
+      continue; // empêche le traitement normal pour cards
     }
 
-    let newValue;
-
-    if (signe === '+' || signe === '-') {
+    // --- Gestion classique pour les autres colonnes ---
+    if (signe === "+" || signe === "-") {
       const n1 = Number(oldValue) || 0;
-      const n2 = Number(valeur) || 0;
-      newValue = signe === '+' ? n1 + n2 : n1 - n2;
-    } else if (signe === '=') {
-      newValue = texte.join(' ');
-    } else if (signe === 'add') {
-      newValue = (oldValue + ' ' + texte.join(' ')).trim();
-    } else if (signe === 'supp') {
-      const regex = new RegExp(`\\b${normalizeText(texte.join(' '))}\\b`, 'gi');
-      newValue = oldValue.replace(regex, '').trim();
+      const n2 = Number(texte.join(" ")) || 0; // fusionner texte pour les nombres
+      newValue = signe === "+" ? n1 + n2 : n1 - n2;
+    } else if (signe === "=") {
+      newValue = texte.join(" ");
+    } else if (signe === "add") {
+      newValue = (oldValue + " " + texte.join(" ")).trim();
+    } else if (signe === "supp") {
+      const regex = new RegExp(`\\b${normalizeText(texte.join(" "))}\\b`, "gi");
+      newValue = oldValue.replace(regex, "").trim();
     } else {
       throw new Error(`❌ Signe non reconnu : ${signe}`);
     }
 
-    updates.push({ colonne: object, oldValue, newValue });
+    updates.push({
+      colonne: object,
+      oldValue,
+      newValue
+    });
   }
 
   return updates;
 }
+
 
 async function updatePlayerData(updates, jid) {
   for (const update of updates) {
