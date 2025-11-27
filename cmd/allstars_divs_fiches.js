@@ -23,8 +23,8 @@ function add_fiche(nom_joueur, jid, image_oc, joueur_div) {
       const data = await getData({ jid: jid });
 
       // Valeurs par défaut si undefined
-      data.niveau_xp = data.niveau_xp ?? 0;
-      data.close_combat = data.close_combat ?? 0;
+      data.niveu_xp = data.niveu_xp ?? 0;
+      data.close_fight = data.close_fight ?? 0;
       data.cards = data.cards ?? "";
 
       if (!arg.length) {
@@ -32,7 +32,7 @@ function add_fiche(nom_joueur, jid, image_oc, joueur_div) {
 ▔▔▔▔▔▔▔▔▔▔▔▔▔░▒▒▒▒░░▒░
 ◇ *Pseudo👤*: ${data.pseudo}
 ◇ *Classement continental🌍:* ${data.classement}
-◇ *Niveau XP⏫*: ${data.niveau_xp} ▲
+◇ *Niveau XP⏫*: ${data.niveu_xp} ▲
 ◇ *Division🛡️*: ${data.division}
 ◇ *Rank 🎖️*: ${data.rang}
 ◇ *Classe🎖️*: ${data.classe}
@@ -63,7 +63,7 @@ function add_fiche(nom_joueur, jid, image_oc, joueur_div) {
 📈 Note: ${data.note}/100
 ⌬ *Talent⭐ :*      ▱▱▱▱▬▬▬ ${data.talent}
 ⌬ *Speed💬 :*       ▱▱▱▱▬▬▬  ${data.speed}
-⌬ *Close combat👊🏻:*  ▱▱▱▱▬▬▬ ${data.close_combat}
+⌬ *Close combat👊🏻:*  ▱▱▱▱▬▬▬ ${data.close_fight}
 ⌬ *Attaques🌀:*     ▱▱▱▱▬▬▬ ${data.attaques}
 
 ░▒░▒░ CARDS 🎴: ${data.cards.split("\n").length}
