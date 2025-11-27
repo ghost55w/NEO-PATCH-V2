@@ -127,34 +127,38 @@ async function processUpdates(args, jid) {
 
     // --- Gestion spéciale pour les cards ---
     if (object === "cards") {
-      const old = oldValue || "";
-      let list = old.split("\n").filter(x => x.trim() !== "");
+  const old = oldValue || "";
+  let list = old.split("\n").filter(x => x.trim() !== "");
 
-      const fullText = texte.join(" "); // tout le texte après le signe
-      const items = fullText.split(",").map(x => x.trim()).filter(x => x.length > 0);
+  const fullText = texte.join(" "); // tout le texte après le signe
+  // si '=' et rien après -> on veut vider
+  const items = fullText.length ? fullText.split(",").map(x => x.trim()).filter(x => x.length > 0) : [];
 
-      if (signe === "+") {
-        for (const card of items) {
-          if (!list.includes(card)) list.push(card);
-        }
-      } else if (signe === "-") {
-        for (const card of items) {
-          list = list.filter(c => c !== card);
-        }
-      } else {
-        throw new Error("❌ Le champ 'cards' accepte uniquement '+' et '-'");
-      }
-
-      newValue = list.join("\n");
-
-      updates.push({
-        colonne: "cards",
-        oldValue: old,
-        newValue
-      });
-
-      continue; // empêche le traitement normal pour cards
+  if (signe === "+") {
+    for (const card of items) {
+      if (!list.includes(card)) list.push(card);
     }
+  } else if (signe === "-") {
+    for (const card of items) {
+      list = list.filter(c => c !== card);
+    }
+  } else if (signe === "=") {
+    // remplace complètement : si items est vide => vide
+    list = items;
+  } else {
+    throw new Error("❌ Le champ 'cards' accepte uniquement '+', '-' ou '='");
+  }
+
+  newValue = list.join("\n");
+
+  updates.push({
+    colonne: "cards",
+    oldValue: old,
+    newValue
+  });
+
+  continue;
+    } 
 
     // --- Gestion classique pour les autres colonnes ---
     if (signe === "+" || signe === "-") {
