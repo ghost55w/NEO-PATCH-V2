@@ -39,11 +39,10 @@ ovlcmd({
     if (!fiche) return repondre("❌ Fiche All Stars introuvable pour ce joueur.");
 
     let valeur_nc = parseInt(userData.nc) || 0;
-    if (valeur_nc < 1) return repondre("❌ Tu n’as pas assez de NC🔷 (au moins 1 requis).");
+if (valeur_nc < 1) return repondre("❌ Tu n’as pas assez de NC🔷 (au moins 1 requis).");
 
-    let valeur_nc = parseInt(userData.nc) || 0;
-    let valeur_coupons = parseInt(userData.coupons) || 0;
-    let valeur_golds = parseInt(fiche.golds) || 0;
+let valeur_coupons = parseInt(userData.coupons) || 0;
+let valeur_golds = parseInt(fiche.golds) || 0;
 
     const numbers = generateRandomNumbers(0, 50, 50);
     const winningNumbers = generateRandomNumbers(0, 50, 3);
