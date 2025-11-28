@@ -195,14 +195,14 @@ ovlcmd({
       const fiche = `░░ *👤PLAYER🥅⚽*: ${data.users}
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 *🛡️Team:* ${data.team}
-*⬆️Niveau:* ${data.niveau}▲
+*⬆️Niveau:* ${data.niveau ?? 0 }▲
 *💰Argent:* ${data.argent} 💶
 *🎖️Classement:* ${data.classement}
 
 ░░ *📊RECORDS⚽🥅*
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
-*✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals}
-░▒▒▒▒░ *🏆Trophies:* ${data.trophies}
+*✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals ??0 }
+░▒▒▒▒░ *🏆Trophies:* ${data.trophies ?? 0 }
 
 ╭───〔 *⚽DATAS📊🔷* 〕───⬣
 🥅+Lineup⚽: ⚠️pour voir la formation
