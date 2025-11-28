@@ -54,8 +54,8 @@ ovlcmd({
 
 Bienvenue dans la Roulette, choisissez un chiffre parmis les *5️⃣0️⃣*. Si vous choisissez le bon chiffre alors vous gagnez une récompense 🎁. *⚠️Vous avez 2 chances pour choisir le bon numéro*. 
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
-╭──────〔 *🎰CASINO🎰* 〕───────
-*\`${numbers.join(', ')}\`*. ▱▱▱ ▱▱▱ ▱▱▱ ▱▱▱
+╭─────〔 *🎰CASINO🎰* 〕───
+*\`${numbers.join(', ')}\`*. 
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
              🎁10🔷  🎁25.000 🧭  🎁5🎫  
 
