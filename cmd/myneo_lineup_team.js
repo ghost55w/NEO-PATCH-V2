@@ -21,9 +21,7 @@ ovlcmd({
     coupons: 0, gift_box: 0, all_stars: "", blue_lock: "+Team⚽", elysium: "+ElysiumMe💠"
   };
   const baseTeam = {
-    users: "aucun", team: "aucun", points_jeu: 0, rank: "aucun",
-    argent: 0, classement: "aucun", wins: 0, loss: 0,
-    draws: 0, trophies: 0, goals: 0, niveau: 0,
+    users: "aucun", team: "aucun", argent: 0, classement: "aucun", wins: 0, loss: 0, niveau: 0, trophies: 0, goals: 0
   };
   const baseLineup = {
     nom: "aucun", joueur1: "", joueur2: "", joueur3: "", joueur4: "",
@@ -195,21 +193,21 @@ ovlcmd({
       const fiche = `░░ *👤PLAYER🥅⚽*: ${data.users}
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 *🛡️Team:* ${data.team}
-*⬆️Niveau:* ${data.niveau ?? 0 }▲
+*⬆️Niveau:* ${data.niveau}▲
 *💰Argent:* ${data.argent} 💶
 *🎖️Classement:* ${data.classement}
 
 ░░ *📊RECORDS⚽🥅*
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
-*✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals ??0 }
-░▒▒▒▒░ *🏆Trophies:* ${data.trophies ?? 0 }
+*✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals}
+░▒▒▒▒░ *🏆Trophies:* ${data.trophies}
 
 ╭───〔 *⚽DATAS📊🔷* 〕───⬣
 🥅+Lineup⚽: ⚠️pour voir la formation
 🌍+player⚽: ⚠️pour voir son Hero
 
 ╰───────────────────
-                       *BLUE🔷LOCK*`;
+              *BLUE🔷LOCK*`;
 
       return await ovl.sendMessage(ms_org, {
         image: { url: "https://files.catbox.moe/2patx3.jpg" },
@@ -255,8 +253,9 @@ ovlcmd({
         } else if (op === "=") updates[field] = value;
       }
     }
-
+    
     if (Object.keys(updates).length > 0) {
+      
       const message = await updateTeam(userId, updates);
       return repondre(message);
     } else {
