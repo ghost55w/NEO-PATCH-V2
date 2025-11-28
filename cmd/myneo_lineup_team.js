@@ -93,20 +93,23 @@ ovlcmd({
     if (!data) return repondre("⚠️ Aucune donnée trouvée pour cet utilisateur.");
 
     if (arg.length <= 1) {
-      const myn = `*🎮NEOVERSE🔷 ACCOUNT🪪* ▔▔▔▔▔▔▔▔▔▔▔▔▔
+      const myn = `╭───〔 *🪀COMPTE NEO🔷* 〕
+      
 👤User: ${data.users}
 📳Téléphone: ${data.tel}
 🎮Points de jeux: ${data.points_jeu}
 🔷NEOcoins: ${data.nc}🔷
 🔶NEOpoints: ${data.np}🔶
 🎫Coupons: ${data.coupons}🎫
-🎁Gift Box: ${data.gift_box}🎁
-░░░░░░░
-*🎮MY GAMES* ════════════
+
+*🎮MY GAMES🪀*
+ ░▒▒▒▒░░▒░
+▔▔▔▔▔▔▔▔▔▔▔▔░▒▒▒▒░░               
 🌀All Stars: ${data.all_stars}
 ⚽Blue Lock: ${data.blue_lock}
 💠Élysium: ${data.elysium}
-╰───────────────────`;
+╰───────────────────
+                   *🔷NEOVERSE🎮*`;
 
       await ovl.sendMessage(ms_org, {
         video: { url: "https://files.catbox.moe/yimc4o.mp4" },
@@ -198,14 +201,15 @@ ovlcmd({
 
 ░░ *📊RECORDS⚽🥅*
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
-✅Wins: ${data.wins}   ❌Loss: ${data.loss}   ⚽Goals: ${data.goals}
-                   🏆Trophies: ${data.Trophies}
+*✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals}
+░▒▒▒▒░ *🏆Trophies:* ${data.Trophies}
 
+╭───〔 *⚽DATAS📊🔷* 〕───⬣
 🥅+Lineup⚽: ⚠️pour voir la formation
 🌍+player⚽: ⚠️pour voir son Hero
 
 ╰───────────────────
-                *BLUE🔷LOCK*`;
+              *BLUE🔷LOCK*`;
 
       return await ovl.sendMessage(ms_org, {
         image: { url: "https://files.catbox.moe/2patx3.jpg" },
@@ -307,7 +311,7 @@ ovlcmd({
 14 👤${data.joueur14}
 15 👤${data.joueur15}
 ╰───────────────────
-                   *BLUE🔷LOCK* `;
+                  *BLUE🔷LOCK* `;
 
     return await ovl.sendMessage(ms_org, {
       image: { url: "https://files.catbox.moe/p94q3m.jpg" },
