@@ -202,7 +202,7 @@ ovlcmd({
 ░░ *📊RECORDS⚽🥅*
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 *✅Wins:* ${data.wins}   *❌Loss:* ${data.loss}   *⚽Goals:* ${data.goals}
-░▒▒▒▒░ *🏆Trophies:* ${data.Trophies}
+░▒▒▒▒░ *🏆Trophies:* ${data.trophies}
 
 ╭───〔 *⚽DATAS📊🔷* 〕───⬣
 🥅+Lineup⚽: ⚠️pour voir la formation
