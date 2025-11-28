@@ -60,16 +60,13 @@ const Team = sequelize.define("Team", {
   id: { type: DataTypes.STRING, primaryKey: true },
   users: { type: DataTypes.STRING, defaultValue: "aucun" },
   team: { type: DataTypes.STRING, defaultValue: "aucune" },
-  points_jeu: { type: DataTypes.INTEGER, defaultValue: 0 },
-  rank: { type: DataTypes.STRING, defaultValue: "aucun" },
+  niveau: { type: DataTypes.INTEGER, defaultValue: 0 },
   argent: { type: DataTypes.INTEGER, defaultValue: 0 },
-  puissance: { type: DataTypes.INTEGER, defaultValue: 0 },
   classement: { type: DataTypes.STRING, defaultValue: "aucun" },
   wins: { type: DataTypes.INTEGER, defaultValue: 0 },
   loss: { type: DataTypes.INTEGER, defaultValue: 0 },
-  draws: { type: DataTypes.INTEGER, defaultValue: 0 },
-  championnats: { type: DataTypes.INTEGER, defaultValue: 0 },
-  nel: { type: DataTypes.INTEGER, defaultValue: 0 },
+  goals: { type: DataTypes.INTEGER, defaultValue: 0 },
+  trophies: { type: DataTypes.INTEGER, defaultValue: 0 },
 }, {
   tableName: "team",
   timestamps: false,
@@ -174,12 +171,15 @@ const TeamFunctions = {
     const count = await Team.destroy({ where: { id: jid } });
     return count > 0 ? "✅ Joueur supprimé avec succès." : "⚠️ Joueur introuvable.";
   },
-  async updateUser(jid, updates) {
-    const user = await Team.findByPk(jid);
-    if (!user) return "⚠️ Joueur introuvable.";
-    await user.update(updates);
-    return "✅ Données mises à jour avec succès.";
-  },
+  async updateUser(id, updates) {
+  try {
+    const [updated] = await Team.update(updates, { where: { id } });
+    return updated ? "✅ Données mises à jour avec succès." : "⚠️ Aucun champ mis à jour.";
+  } catch (err) {
+    console.error("❌ Erreur mise à jour:", err);
+    return "❌ Une erreur est survenue lors de la mise à jour.";
+  }
+  }
 };
 
 module.exports = {
