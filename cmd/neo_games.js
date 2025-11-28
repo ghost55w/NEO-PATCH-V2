@@ -49,20 +49,21 @@ ovlcmd({
     const winningNumbers = generateRandomNumbers(0, 50, 3);
     const rewards = generateRewards();
 
-    let msga = `*🎰       𝗧𝗘𝗡𝗧𝗘𝗭 𝗩𝗢𝗧𝗥𝗘 𝗖𝗛𝗔𝗡𝗖𝗘🥳 !!*🎉🎉
+    let msga = `*🎰𝗧𝗘𝗡𝗧𝗘𝗭 𝗩𝗢𝗧𝗥𝗘 𝗖𝗛𝗔𝗡𝗖𝗘🥳 !!*🎉🎉
 ▭▬▭▬▭▬▭▬▭▬▭▬════░▒▒▒▒░░▒░
 
 Bienvenue dans la Roulette, choisissez un chiffre parmis les *5️⃣0️⃣*. Si vous choisissez le bon chiffre alors vous gagnez une récompense 🎁. *⚠️Vous avez 2 chances pour choisir le bon numéro*. 
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
 ╭──────〔 *🎰CASINO🎰* 〕───────
-*\`${numbers.join(', ')}\`*.
+*\`${numbers.join(', ')}\`*. ▱▱▱ ▱▱▱ ▱▱▱ ▱▱▱
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
              🎁10🔷  🎁25.000 🧭  🎁5🎫  
 
 *🎊Voulez-vous tenter votre chance ?* (1min)
-✅: `Oui`
-❌: `Non`
-                                          ══░▒▒▒▒░░▒░`;
+✅: \`Oui\`
+❌: \`Non\`
+╰───────────────────
+ ══░▒▒▒▒░░▒░`;
 
     await ovl.sendMessage(ms_org, {
       video: { url: 'https://files.catbox.moe/amtfgl.mp4' },
