@@ -38,11 +38,12 @@ ovlcmd({
     const fiche = await getData({ jid: auteur_Message });
     if (!fiche) return repondre("❌ Fiche All Stars introuvable pour ce joueur.");
 
-    let valeur_nc = parseInt(userData.nc) || 0;
-if (valeur_nc < 1) return repondre("❌ Tu n’as pas assez de NC🔷 (au moins 1 requis).");
+    let valeur_np = parseInt(userData.np) || 0;
+    if (valeur_np < 1) return repondre("❌ Tu n’as pas assez de np (au moins 1 requis).");
 
-let valeur_coupons = parseInt(userData.coupons) || 0;
-let valeur_golds = parseInt(fiche.golds) || 0;
+    let valeur_nc = parseInt(userData.nc) || 0;
+    let valeur_coupons = parseInt(userData.coupons) || 0;
+    let valeur_golds = parseInt(fiche.golds) || 0;
 
     const numbers = generateRandomNumbers(0, 50, 50);
     const winningNumbers = generateRandomNumbers(0, 50, 3);
@@ -54,11 +55,9 @@ let valeur_golds = parseInt(fiche.golds) || 0;
 Bienvenue dans la Roulette, choisissez un chiffre parmis les *5️⃣0️⃣*. Si vous choisissez le bon chiffre alors vous gagnez une récompense 🎁. *⚠️Vous avez 2 chances pour choisir le bon numéro*. 
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
 ╭──────〔 *🎰CASINO🎰* 〕───────
-*`16, 32, 20, 1, 45, 8, 47, 49, 10, 37, 31, 15, 27, 21, 4, 50, 5, 48, 29, 2, 44, 7, 18, 6, 34, 28, 38, 12, 39, 36, 24, 23, 25, 3, 17, 22, 35, 46, 26, 9, 33, 42, 14, 13, 40, 41, 19, 43, 11, 0`*
-╰───────────────────
+*\`${numbers.join(', ')}\`*.
 🎊▔▔🎊▔🎊▔🎊▔▔🎊▔▔🎊▔🎊▔🎊
              🎁10🔷  🎁25.000 🧭  🎁5🎫  
-⚠️Vous pouvez booster votre récompense x2 pour 5🔷 avant le début du jeu, vous devez donc préciser au maître du jeu que vous voulez utiliser un Boost. 
 
 *🎊Voulez-vous tenter votre chance ?* (1min)
 ✅: `Oui`
@@ -83,9 +82,8 @@ Bienvenue dans la Roulette, choisissez un chiffre parmis les *5️⃣0️⃣*. S
 
     await getConfirmation();
 
-// Retirer automatiquement 1 NeoCoin dès que le joueur dit OUI
-valeur_nc -= 1;
-await MyNeoFunctions.updateUser(auteur_Message, { nc: valeur_nc });
+    valeur_np -= 1;
+    await MyNeoFunctions.updateUser(auteur_Message, { np: valeur_np });
 
     const getChosenNumber = async (isSecond = false, attempt = 1) => {
       if (attempt > 3) throw new Error('TooManyAttempts');
