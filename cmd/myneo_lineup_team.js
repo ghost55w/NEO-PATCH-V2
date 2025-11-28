@@ -23,7 +23,7 @@ ovlcmd({
   const baseTeam = {
     users: "aucun", team: "aucun", points_jeu: 0, rank: "aucun",
     argent: 0, classement: "aucun", wins: 0, loss: 0,
-    draws: 0, championnats: 0, nel: 0, niveau: 0, trophies: 0, goals: 0
+    draws: 0, trophies: 0, goals: 0, niveau: 0,
   };
   const baseLineup = {
     nom: "aucun", joueur1: "", joueur2: "", joueur3: "", joueur4: "",
