@@ -38,8 +38,8 @@ ovlcmd({
     const fiche = await getData({ jid: auteur_Message });
     if (!fiche) return repondre("❌ Fiche All Stars introuvable pour ce joueur.");
 
-    let valeur_np = parseInt(userData.np) || 0;
-    if (valeur_np < 1) return repondre("❌ Tu n’as pas assez de np (au moins 1 requis).");
+    let valeur_nc = parseInt(userData.nc) || 0;
+    if (valeur_nc < 1) return repondre("❌ Tu n’as pas assez de NC🔷 (au moins 1 requis).");
 
     let valeur_nc = parseInt(userData.nc) || 0;
     let valeur_coupons = parseInt(userData.coupons) || 0;
@@ -84,8 +84,9 @@ Bienvenue dans la Roulette, choisissez un chiffre parmis les *5️⃣0️⃣*. S
 
     await getConfirmation();
 
-    valeur_np -= 1;
-    await MyNeoFunctions.updateUser(auteur_Message, { np: valeur_np });
+// Retirer automatiquement 1 NeoCoin dès que le joueur dit OUI
+valeur_nc -= 1;
+await MyNeoFunctions.updateUser(auteur_Message, { nc: valeur_nc });
 
     const getChosenNumber = async (isSecond = false, attempt = 1) => {
       if (attempt > 3) throw new Error('TooManyAttempts');
