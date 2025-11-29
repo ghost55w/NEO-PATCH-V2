@@ -545,9 +545,6 @@ const allFiches = await getAllFiches();
 let totalPrice = 0;
 const cardsToSend = [];
 
-const requestedCards = txt.split(",").map(x => x.trim());
-const allFiches = await getAllFiches();
-
 // --- Nouveau bloc tolérant ---
 for (const rcInput of requestedCards) {
     const rcWords = rcInput.toLowerCase().split(/[\s_]+/); // découpe la saisie en mots
