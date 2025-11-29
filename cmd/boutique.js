@@ -522,7 +522,7 @@ await ovl.sendMessage(ms_org, {
     caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
 
 😃Bienvenue dans la boutique NEO🛍️Store🛒, pour faire un achat il vous suffit de taper comme ceci :
-*achat: sasuke hebi bronze sp S+/SS,SSM* puis après avoir obtenu votre facture, veuillez remettre à un boutiquier qui mettra à jour sur votre fiche. *#Happy202️⃣6️⃣🎊🎄*
+*achat: sasuke bronze sparking/sp* puis après avoir obtenu votre facture, veuillez remettre à un boutiquier qui mettra à jour sur votre fiche. *#Happy202️⃣6️⃣🎊🎄*
 ╰───────────────────
                   *🔷NEO🛍️STORE* `
 }, { quoted: ms });
