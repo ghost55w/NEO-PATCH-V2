@@ -482,15 +482,22 @@ await ovl.sendMessage(ms_org, {
     caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
 
 😃Bienvenue dans la boutique NEO🛍️Store🛒, pour faire un achat il vous suffit de taper comme ceci :
-*achat cards Sasuke hebi bronze sparking S+/SS,SSM* puis après avoir obtenu votre facture, veuillez remettre à un boutiquier qui mettra à jour sur votre fiche. *#Happy202️⃣6️⃣🎊🎄*
+*achat: sasuke hebi bronze sp S+/SS,SSM* puis après avoir obtenu votre facture, veuillez remettre à un boutiquier qui mettra à jour sur votre fiche. *#Happy202️⃣6️⃣🎊🎄*
 ╰───────────────────
                   *🔷NEO🛍️STORE* `
 }, { quoted: ms });
 
 // --- Récupération du texte des cartes ---
 const rep = await ovl.recup_msg({ auteur: auteur_Message, ms_org, temps: 60000 });
-const txt = (rep?.message?.extendedTextMessage?.text || rep?.message?.conversation || "").toLowerCase();
+let txt = (rep?.message?.extendedTextMessage?.text || rep?.message?.conversation || "").toLowerCase();
 if (!txt) return repondre("❌ Aucune carte détectée.");
+
+// Vérifie que le joueur a bien écrit "achat:"
+if (!txt.startsWith("achat:")) return repondre("❌ Veuillez commencer votre message par 'achat:' suivi du nom de la carte.");
+
+// Supprime "achat:" pour ne garder que le nom des cartes
+txt = txt.replace("achat:", "").trim();
+if (!txt) return repondre("❌ Veuillez indiquer le nom de la carte après 'achat:'.");
 
 const requestedCards = txt.split(",").map(x => x.trim());
 const allFiches = await getAllFiches();
