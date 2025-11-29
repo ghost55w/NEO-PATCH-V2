@@ -35,7 +35,7 @@ const cards = {
   "Borushiki_argent_legend_sp_800k.jpg": "https://files.catbox.moe/ayb8n5.jpg",
   "Boruto_bronze_sparking_s_300k.jpg": "https://files.catbox.moe/8qzmzr.jpg",
   "Broly_argent_legend_ssp_300nc.jpg": "https://files.catbox.moe/au0pd6.jpg",
-  "Broly_or_legend_ssp_480nc.jpg": "https://files.catbox.moe/2qvkfx.jpg",
+  "Broly(Dbs)_or_legend_ssp_480nc.jpg": "https://files.catbox.moe/2qvkfx.jpg",
   "Brooks_bronze_sparking_sm_100k.jpg": "https://files.catbox.moe/kf359g.jpg",
   "Buhan_or_legend_ss_340nc.jpg": "https://files.catbox.moe/2tbn9y.jpg",
   "Burter_bronze_sparking_ssp_90nc.jpg": "https://files.catbox.moe/jkx88l.jpg",
