@@ -456,14 +456,6 @@ priceData: parsePrice(parts[4])
 };
 }
 
-// Aliases pour tolérance de saisie
-const cardAliases = {
-"trunks ssm": "trunks_argent_sparking_ssm",
-"vegeta legend": "vegeta_or_legend",
-"vegeta legend ssp": "vegeta_or_legend_ssp",
-"vegito legend": "vegito_or_legend_ssp",
-// ajoute les autres alias selon besoin
-};
 
 ovlcmd({
 nom_cmd: "boutique🛍️",
