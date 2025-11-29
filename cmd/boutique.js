@@ -498,12 +498,18 @@ const allFiches = await getAllFiches();
 let totalPrice = 0;
 const cardsToSend = [];
 
+const requestedCards = txt.split(",").map(x => x.trim());
+const allFiches = await getAllFiches();
+
+// --- Nouveau bloc tolérant ---
 for (const rcInput of requestedCards) {
-    const rc = cardAliases[rcInput] || rcInput;
+    const rcWords = rcInput.toLowerCase().split(/[\s_]+/); // découpe la saisie en mots
 
     const foundFile = Object.keys(shopCards).find(f => {
         const c = parseCardData(f);
-        return rc.includes(c.name) && rc.includes(c.color) && rc.includes(c.type) && rc.includes(c.grade);
+        const cardWords = [c.name, c.color, c.type, c.grade]; // mots du fichier
+        // Vérifie que chaque mot de la saisie est présent dans les mots du fichier
+        return rcWords.every(w => cardWords.includes(w));
     });
 
     if (!foundFile) return repondre(`❌ Carte non trouvée ou format incorrect: ${rcInput}`);
@@ -521,6 +527,7 @@ for (const rcInput of requestedCards) {
     totalPrice += priceAmount;
     cardsToSend.push({ file: foundFile, info: cardInfo, price: priceAmount });
 }
+    
 
 // --- Confirmation avant achat ---
 await ovl.sendMessage(ms_org, {
