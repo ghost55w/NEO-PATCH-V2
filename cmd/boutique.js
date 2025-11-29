@@ -435,6 +435,15 @@ const shopCards = {
 // ajoute toutes les autres cartes ici...
 
 
+module.exports = {
+  nom_cmd: "boutique",
+  classe: "Shop",
+  react: "🛍️",
+  desc: "Afficher la boutique",
+  execute: async (ms_org, ovl, cmd) => {
+    console.log("Commande boutique chargée ✅");
+  }
+};
 // Conversion prix
 function parsePrice(priceString) {
 priceString = priceString.toLowerCase();
