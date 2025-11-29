@@ -434,6 +434,44 @@ const shopCards = {
 };
 // ajoute toutes les autres cartes ici...
 
+function findCard(userMessage) {
+    const text = userMessage.toLowerCase().replace(/_/g, " ");
+    const words = text.split(/\s+/);
+
+    for (const cardName in shopCards) {
+        const card = shopCards[cardName];
+        const keywords = [];
+
+        // Nom : alias + version sans underscore
+        card.alias.forEach(a => {
+            keywords.push(a.toLowerCase()); 
+            keywords.push(a.toLowerCase().replace(/_/g, ""));
+        });
+
+        // Rareté
+        keywords.push(card.rare.toLowerCase());        // sparking
+        keywords.push("sp");                           // sp équivalent sparking
+
+        // Couleur
+        keywords.push(card.color.toLowerCase());       // bronze/silver/or
+
+        let matches = 0;
+
+        for (const w of words) {
+            if (keywords.includes(w)) {
+                matches++;
+            }
+        }
+
+        // Le joueur doit donner 3 éléments : nom + rareté + couleur
+        if (matches >= 3) {
+            return card;
+        }
+    }
+
+    return null;
+}
+
 
 module.exports = {
   nom_cmd: "boutique",
@@ -444,6 +482,7 @@ module.exports = {
     console.log("Commande boutique chargée ✅");
   }
 };
+
 // Conversion prix
 function parsePrice(priceString) {
 priceString = priceString.toLowerCase();
