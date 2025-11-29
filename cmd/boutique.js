@@ -26,7 +26,7 @@ function loadCards(directory) {
 }
 
 // Chargement auto depuis /database/cards/
-const shopCards = loadCards("./database/cards");
+const shopCards = loadCards("./DataBase/cards");
 
 function findCard(userMessage) {
     const text = userMessage.toLowerCase().replace(/_/g, " ");
