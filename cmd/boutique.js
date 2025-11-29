@@ -492,6 +492,63 @@ if (priceString.includes("k")) return { type: "golds", amount: parseInt(priceStr
 return { type: "golds", amount: 0 };
 }
 
+function normalize(str) {
+  return str
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // retire accents
+    .replace(/[^a-z0-9]/g, ""); // retire tout sauf lettres/chiffres
+}
+
+//recherche intelligente plus tolerance
+function levenshtein(a, b) {
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const matrix = [];
+
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] = b[i - 1] === a[j - 1]
+        ? matrix[i - 1][j - 1]
+        : Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+//trouve la card a partir de plusieurs mots
+function searchCard(query, boutique) {
+  const q = normalize(query);
+
+  let bestMatch = null;
+  let bestScore = Infinity;
+
+  for (const key of Object.keys(boutique)) {
+    const cleanKey = normalize(key);
+
+    const score = levenshtein(q, cleanKey);
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestMatch = key;
+    }
+  }
+
+  
+  // si trop différent → pas sûr
+  if (bestScore > 15) return null;
+
+  return bestMatch;
+}
+
 // Parse les infos de la carte depuis le nom du fichier
 function parseCardData(file) {
 const parts = file.replace(".jpg","").split("_");
@@ -539,6 +596,21 @@ if (!txt.startsWith("achat:")) return repondre("❌ Veuillez commencer votre mes
 txt = txt.replace("achat:", "").trim();
 if (!txt) return repondre("❌ Veuillez indiquer le nom de la carte après 'achat:'.");
 
+const collector = message.channel.createMessageCollector({ time: 30000 });
+
+collector.on("collect", msg => {
+  const attempt = msg.content;
+  let found2 = searchCard(attempt, boutique);
+
+  if (found2) {
+    collector.stop();
+    return msg.reply(`🎉 Trouvé cette fois ! **${found2}**`);
+  } else {
+    msg.reply("Toujours rien 😅 Réessaie encore !");
+  }
+}); 
+
+  
 const requestedCards = txt.split(",").map(x => x.trim());
 const allFiches = await getAllFiches();
 
