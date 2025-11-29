@@ -478,12 +478,13 @@ if (!userData || !fiche) return repondre("❌ Impossible de récupérer ta fiche
 
 // --- Message d'accueil ---
 await ovl.sendMessage(ms_org, {
-    image: { url: 'https://files.catbox.moe/your_shop_image.jpg' },
-    caption: `🛍️ Bienvenue à la boutique All Stars !
+    image: { url: 'https://files.catbox.moe/ye33nv.png' },
+    caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
 
-📌 Pour acheter plusieurs cartes, séparez-les par des virgules
-📌 Format: nom couleur type grade
-(ex: vegeta or legend SS+, trunks argent sparking SM)`
+😃Bienvenue dans la boutique NEO🛍️Store🛒, pour faire un achat il vous suffit de taper comme ceci :
+*achat cards Sasuke hebi bronze sparking S+/SS,SSM* puis après avoir obtenu votre facture, veuillez remettre à un boutiquier qui mettra à jour sur votre fiche. *#Happy202️⃣6️⃣🎊🎄*
+╰───────────────────
+                  *🔷NEO🛍️STORE* `
 }, { quoted: ms });
 
 // --- Récupération du texte des cartes ---
