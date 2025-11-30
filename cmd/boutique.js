@@ -33,14 +33,14 @@ ovlcmd({
                   *🔷NEO🛍️STORE*`
         }, { quoted: ms });
 
-        // helper: wait for message with timeout (ms)
+        // wait for message with timeout (ms)
         const waitFor = async (timeout = 120000) => {
             const r = await ovl.recup_msg({ auteur: auteur_Message, ms_org, temps: timeout });
             const txt = r?.message?.extendedTextMessage?.text || r?.message?.conversation || "";
             return txt ? txt.trim() : "";
         };
 
-        // helper: find DB card by exact name or includes
+        // DB card by exact name or includes
         function findCardByName(name) {
             const low = name.toLowerCase();
             for (const [placementKey, placementCards] of Object.entries(cards)) {
@@ -56,7 +56,7 @@ ovlcmd({
             return null;
         }
 
-        // helper: count how many players own a card (exact name)
+        // how many players own a card (exact name)
         async function countOwners(cardName) {
             let allFiches = [];
             try {
@@ -283,23 +283,53 @@ Placement : ${card.placement}
 *Tu as 1 minute pour répondre.*`
                 }, { quoted: ms });
 
-                // wait for confirmation (1 minute)
-                const conf = await waitFor(60000);
-                const confNorm = (conf || "").toLowerCase().trim();
+  // wait for confirmation (1 minute)
+const conf = await waitFor(60000);
+const confNorm = (conf || "").toLowerCase().trim();
 
-                if (!confNorm) {
-                    await repondre("❌ Temps écoulé pour la confirmation. Opération annulée.");
-                    initialInput = await waitFor(120000);
-                    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                    continue;
-                }
+if (!confNorm) {
+    await repondre("❌ Temps écoulé pour la confirmation. Opération annulée.");
+    initialInput = await waitFor(120000);
+    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
+    continue;
+}
 
-                if (!["oui", "yes", "y"].includes(confNorm)) {
-                    await repondre("❌ Opération annulée. Tu peux choisir un autre numéro ou taper `close`.");
-                    initialInput = await waitFor(120000);
-                    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                    continue;
-                }
+// Gestion coupon
+let finalPrice = bumpedPrix;  // prix par défaut
+let couponUsed = false;
+
+// Si l'utilisateur veut appliquer un coupon
+if (confNorm.includes("oui") && confNorm.includes("+coupon")) {
+    const userCoupons = parseInt(userData.coupons || 0); // Assurez-vous que MyNeoFunctions contient "coupons"
+    if (userCoupons < 100) {
+        await repondre("❌ Tu n’as pas assez de coupons pour appliquer la réduction (-50%). Achat annulé.");
+        initialInput = await waitFor(120000);
+        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
+        continue;
+    } else {
+        finalPrice = Math.floor(bumpedPrix / 2); // 50% de réduction
+        couponUsed = true;
+    }
+}
+
+// Achat normal sans coupon
+if (!confNorm.includes("+coupon") && ["oui", "yes", "y"].includes(confNorm)) {
+    finalPrice = bumpedPrix;
+}
+
+// Si ce n'est pas un oui valide et pas coupon → annuler
+if (!["oui", "yes", "y"].some(v => confNorm.includes(v)) && !couponUsed) {
+    await repondre("❌ Opération annulée. Tu peux choisir un autre numéro ou taper `close`.");
+    initialInput = await waitFor(120000);
+    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
+    continue;
+}
+
+// Retirer 100 coupons si utilisés
+if (couponUsed) {
+    await MyNeoFunctions.updateUser(auteur_Message, { coupons: userData.coupons - 100 });
+    await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée sur le prix de la carte.");
+}              
 
                 // Proceed with achat or vente using bumpedPrix
                 const finalPrice = bumpedPrix;
@@ -520,7 +550,7 @@ Prix : ${pricePreviewString}${ownersForPreview >= 2 ? "  (Prix augmenté car dé
 
 //SHOWING CARD TO THE PLAYER BY DEMAND
 ovlcmd({
-    nom_cmd: /^(\+cards)/i,   // Détection automatique de : +cardsxxxx
+    nom_cmd: /^(\+card)/i,   // Détection automatique de : +cardsxxxx
     isCustom: true
 }, async (ms_org, ovl, { ms, auteur_Message, repondre, prefixe, commande }) => {
 
