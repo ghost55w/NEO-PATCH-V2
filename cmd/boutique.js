@@ -51,9 +51,14 @@ if (!userData || !fiche) return repondre("❌ Impossible de récupérer ta fiche
         }
 
         // Détecter achat ou vente
-        let mode = "achat"; // par défaut
-        if (/^(🛍️)?\s*achat\s*:/i.test(userInput)) mode = 'achat';
-        else if (/^(🛍️)?\s*vente\s*:/i.test(userInput)) mode = 'vente';
+        let mode = "achat";
+
+if (userInput.startsWith("🛍️achat:") || /^achat\s*:/i.test(userInput)) {
+    mode = "achat";
+}
+else if (userInput.startsWith("🛍️vente:") || /^vente\s*:/i.test(userInput)) {
+    mode = "vente";
+}
 
         // Extraire le texte après les deux-points
         let query = userInput.includes(":") ? userInput.split(":")[1].trim() : userInput.trim();
