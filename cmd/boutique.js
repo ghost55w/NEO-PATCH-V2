@@ -283,7 +283,7 @@ Placement : ${card.placement}
 *Tu as 1 minute pour répondre.*`
                 }, { quoted: ms });
 
-  // wait for confirmation (1 minute)
+// wait for confirmation (1 minute)
 const conf = await waitFor(60000);
 const confNorm = (conf || "").toLowerCase().trim();
 
@@ -295,7 +295,6 @@ if (!confNorm) {
 }
 
 // Gestion coupon
-let finalPrice = bumpedPrix;  // prix par défaut
 let couponUsed = false;
 
 // Si l'utilisateur veut appliquer un coupon
@@ -307,15 +306,13 @@ if (confNorm.includes("oui") && confNorm.includes("+coupon")) {
         if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
         continue;
     } else {
-        finalPrice = Math.floor(bumpedPrix / 2); // 50% de réduction
+        finalPrice = Math.floor(finalPrice / 2); // 50% de réduction
         couponUsed = true;
     }
 }
 
 // Achat normal sans coupon
-if (!confNorm.includes("+coupon") && ["oui", "yes", "y"].includes(confNorm)) {
-    finalPrice = bumpedPrix;
-}
+// si confNorm contient juste oui, on laisse finalPrice inchangé
 
 // Si ce n'est pas un oui valide et pas coupon → annuler
 if (!["oui", "yes", "y"].some(v => confNorm.includes(v)) && !couponUsed) {
@@ -329,7 +326,7 @@ if (!["oui", "yes", "y"].some(v => confNorm.includes(v)) && !couponUsed) {
 if (couponUsed) {
     await MyNeoFunctions.updateUser(auteur_Message, { coupons: userData.coupons - 100 });
     await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée sur le prix de la carte.");
-}              
+}
 
                 // Proceed with achat or vente using bumpedPrix
                 const finalPrice = bumpedPrix;
