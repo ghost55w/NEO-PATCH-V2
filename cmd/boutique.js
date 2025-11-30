@@ -29,7 +29,7 @@ ovlcmd({
 🛍️achat: sasuke(Hebi)/ 🛍️vente: sasuke(Hebi). Après cela attendez la validation de votre achat ou de votre vente.
 #Happy202️⃣6️⃣🎊🎄
 ╰───────────────────
-🔷NEO🛍️STORE`
+                🔷NEO🛍️STORE`
     }, { quoted: ms });
 
     // Fonction pour attendre message du joueur
@@ -63,24 +63,26 @@ ovlcmd({
       }
 
       // Recherche carte
-      const cleanQuery = query.replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      let found = [];
-      for (const [placementKey, placementCards] of Object.entries(cards)) {
-        for (const c of placementCards) {
-          const cleanName = c.name.toLowerCase().replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          if (cleanName.includes(cleanQuery)) found.push({ ...c, placement: placementKey });
-        }
-      }
+let txt = ms.body
+  .replace(/^🛍️achat[: ]?/i, "")
+  .trim()
+  .toLowerCase();
 
-      if (found.length === 0) {
-        await repondre(`❌ Aucune carte trouvée pour : ${query}`);
-        userInput = await waitFor(120000);
-        continue;
-      }
+// 1. MATCH EXACT
+let card = allCards.find(c => c.name.toLowerCase() === txt);
 
-      const card = found[0]; // on prend la première correspondance
-      let basePrix = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
+// 2. SI PAS DE MATCH EXACT → MATCH PARTIEL
+if (!card) {
+  card = allCards.find(c => c.name.toLowerCase().startsWith(txt));
+}
 
+if (!card) {
+  card = allCards.find(c => c.name.toLowerCase().includes(txt));
+}
+
+if (!card) return repondre("❌ Aucune carte trouvée.");
+
+      
       // Vérification si déjà possédée par >=2 joueurs pour bump prix
       let owners = 0;
       if (MyNeoFunctions.getAllFiches) {
