@@ -10,9 +10,10 @@ const formatNumber = n => {
 };
 
 ovlcmd({
-  nom_cmd: "boutique🛍️",    // emoji retiré pour compat Render
+  // Important: remove emoji from nom_cmd to avoid parser issues on Render
+  nom_cmd: "boutique",
   react: "🛒",
-  classe: "NEO_GAMES"     // emoji retiré pour compat Render
+  classe: "NEO_GAMES"
 }, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
   try {
     // Récupération des données utilisateur et fiche
@@ -20,7 +21,7 @@ ovlcmd({
     const fiche = await getData({ jid: auteur_Message });
     if (!userData || !fiche) return repondre("❌ Impossible de récupérer ta fiche.");
 
-    // Message d'accueil boutique (tu peux garder les emojis ici)
+    // Message d'accueil boutique (garde les emojis ici, c'est safe)
     await ovl.sendMessage(ms_org, {
       image: { url: 'https://files.catbox.moe/i87tdr.png' },
       caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
@@ -36,8 +37,16 @@ ovlcmd({
     const waitFor = async (timeout = 120000) => {
       const r = await ovl.recup_msg({ auteur: auteur_Message, ms_org, temps: timeout });
       const txt = r?.message?.extendedTextMessage?.text || r?.message?.conversation || "";
-      return txt ? txt.trim().toLowerCase() : "";
+      return txt ? txt.trim() : ""; // return raw case (we'll lower where needed)
     };
+
+    // Build flat list of all cards for searching (with placement)
+    const allCards = [];
+    for (const [placementKey, placementCards] of Object.entries(cards)) {
+      for (const c of placementCards) {
+        allCards.push({ ...c, placement: placementKey });
+      }
+    }
 
     // Boucle de session boutique
     let sessionOpen = true;
@@ -45,145 +54,196 @@ ovlcmd({
     if (!userInput) return repondre("❌ Temps écoulé. Session fermée.");
 
     while (sessionOpen) {
-      if (userInput === "close") {
-        await repondre("✅ Boutique fermée.");
-        break;
-      }
+      try { // try interne pour que la session continue si une erreur ponctuelle survient
+        if (!userInput) {
+          userInput = await waitFor(120000);
+          if (!userInput) return repondre("❌ Temps écoulé. Session fermée.");
+        }
 
-      // Détecter achat ou vente — PAS d'emoji dans la regex
-      let mode = "achat"; // par défaut
-      if (userInput.startsWith("🛍️achat:") || /^\s*achat\s*:/i.test(userInput)) mode = 'achat';
-      else if (userInput.startsWith("🛍️vente:") || /^\s*vente\s*:/i.test(userInput)) mode = 'vente';
+        if (userInput.toLowerCase() === "close") {
+          await repondre("✅ Boutique fermée.");
+          break;
+        }
 
-      // Extraire le texte après les deux-points
-      let query = userInput.includes(":") ? userInput.split(":")[1].trim() : userInput.trim();
-      if (!query) {
-        userInput = await waitFor(120000);
-        continue;
-      }
+        // Détecter achat ou vente : use startsWith to avoid emoji-in-regex issues
+        let normalized = userInput.trim();
+        let lower = normalized.toLowerCase();
 
-// Nettoyage
-let search = query.toLowerCase().replace(/[\s\-\_]/g, "");
+        let mode = "achat"; // défaut
+        if (lower.startsWith("🛍️achat") || lower.startsWith("achat")) mode = "achat";
+        else if (lower.startsWith("🛍️vente") || lower.startsWith("vente")) mode = "vente";
 
-// Construire la liste de toutes les cartes
-let allCards = [];
-for (const [placementKey, placementCards] of Object.entries(cards)) {
-  for (const c of placementCards) {
-    allCards.push({ ...c, placement: placementKey });
-  }
-}
+        // Extraction sûre du texte après les deux-points
+        let parts = normalized.split(":");
+        if (parts.length < 2) {
+          await repondre("❌ Format incorrect. Exemple : 🛍️achat: sasuke(Hebi)");
+          userInput = await waitFor(120000);
+          continue;
+        }
+        let query = parts.slice(1).join(":").trim(); // supporte ":" dans le nom au cas où
+        if (!query) {
+          await repondre("❌ Tu dois écrire un nom après les deux-points.");
+          userInput = await waitFor(120000);
+          continue;
+        }
 
-// MATCH EXACT (ex: "sasuke(hebi)")
-let card = allCards.find(c =>
-  c.name.toLowerCase() === query.toLowerCase()
-);
+        // ------------ RECHERCHE CARTE ------------
+        const qRaw = query;
+        const q = qRaw.toLowerCase().trim();
+        const qNoSpace = q.replace(/[\s\-\_]/g, "");
 
-// MATCH COMMENCE PAR (ex: "sasu" → "Sasuke")
-if (!card) {
-  card = allCards.find(c =>
-    c.name.toLowerCase().replace(/[\s\-\_]/g, "").startsWith(search)
-  );
-}
+        // PRIORITÉ DE RECHERCHE:
+        // 1) match exact du nom complet
+        // 2) match exact du nom simple (sans parenthèses) si q donne un simple
+        // 3) match commence par (sans parenthèse) pour prioriser versions "principales"
+        // 4) match partiel fallback
+        let card = allCards.find(c => c.name.toLowerCase() === q);
 
-// MATCH PARTIEL (ex: "hebi" → "Sasuke(Hebi)")
-if (!card) {
-  card = allCards.find(c =>
-    c.name.toLowerCase().replace(/[\s\-\_]/g, "").includes(search)
-  );
-}
+        // If user typed a simple name (no parentheses) prefer the card without parentheses
+        if (!card && !q.includes("(")) {
+          // exact simple name (case where DB has "Sasuke" exactly)
+          card = allCards.find(c => c.name.toLowerCase() === q && !c.name.includes("("));
+        }
 
-if (!card) {
-  await repondre(`❌ Aucune carte trouvée pour : ${query}`);
-  userInput = await waitFor(120000);
-  continue;
-}
+        // startsWith without parentheses
+        if (!card && !q.includes("(")) {
+          card = allCards.find(c =>
+            !c.name.includes("(") &&
+            c.name.toLowerCase().replace(/[\s\-\_]/g, "").startsWith(qNoSpace)
+          );
+        }
 
-// Prix de base de la carte
-let basePrix = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
+        // startsWith general
+        if (!card) {
+          card = allCards.find(c =>
+            c.name.toLowerCase().replace(/[\s\-\_]/g, "").startsWith(qNoSpace)
+          );
+        }
 
-// Vérification si déjà possédée par >=2 joueurs pour bump prix
-let owners = 0;
-if (MyNeoFunctions.getAllFiches) {
-  const allFiches = await MyNeoFunctions.getAllFiches();
-  owners = allFiches.filter(f =>
-    (f.cards || "")
-      .split("\n")
-      .map(x => x.trim().toLowerCase())
-      .includes(card.name.toLowerCase())
-  ).length;
-}
+        // partial fallback
+        if (!card) {
+          card = allCards.find(c =>
+            c.name.toLowerCase().replace(/[\s\-\_]/g, "").includes(qNoSpace)
+          );
+        }
 
-      // Affichage carte + confirmation
-      await ovl.sendMessage(ms_org, {
-        image: { url: card.image },
-        caption: `🎴 *Carte :* ${card.name}
+        // Not found
+        if (!card) {
+          await repondre(`❌ Aucune carte trouvée pour : ${query}`);
+          userInput = await waitFor(120000);
+          continue;
+        }
+
+        // Prix de base (important : définir avant usage)
+        let basePrix = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
+
+        // Vérification si déjà possédée par >=2 joueurs pour bump prix
+        let owners = 0;
+        try {
+          if (MyNeoFunctions.getAllFiches) {
+            const allFiches = await MyNeoFunctions.getAllFiches();
+            owners = allFiches.filter(f =>
+              (f.cards || "").split("\n").map(x => x.trim().toLowerCase()).includes(card.name.toLowerCase())
+            ).length;
+          }
+        } catch (e) {
+          console.log("WARN: getAllFiches error:", e);
+        }
+        let bumpedPrix = owners >= 2 ? basePrix + 500000 : basePrix;
+
+        // Format price string (keep emoji 🧭)
+        const priceString = `${formatNumber(bumpedPrix)} 🧭`;
+
+        // Affichage carte + confirmation (identique au format demandé)
+        await ovl.sendMessage(ms_org, {
+          image: { url: card.image },
+          caption: `🎴 *Carte :* ${card.name}
 
 Nom : ${card.name}
 Grade : ${card.grade}
 Catégorie : ${card.category}
 Placement : ${card.placement}
-🛍️Prix : ${bumpedPrix} 🧭
+🛍️Prix : ${priceString}
 
 ✔️ Confirmer ${mode === 'achat' ? "l'achat" : "la vente"} ? (oui / non / +coupon)
 
-Tu as 1 minute pour répondre.`
-      }, { quoted: ms });
+*Tu as 1 minute pour répondre.*`
+        }, { quoted: ms });
 
-      // Attente confirmation
-      let confNorm = await waitFor(60000);
-      if (!confNorm) {
-        userInput = await waitFor(120000);
-        continue;
-      }
-
-      // Vérification coupon
-      let couponUsed = false;
-      let finalPrice = bumpedPrix;
-      if (confNorm.includes("+coupon")) {
-        const userCoupons = parseInt(userData.coupons || 0);
-        if (userCoupons < 100) {
-          await repondre("❌ Pas assez de coupons (100 nécessaires). Achat annulé.");
+        // Attente confirmation
+        let confNorm = (await waitFor(60000)).toLowerCase();
+        if (!confNorm) {
           userInput = await waitFor(120000);
           continue;
         }
-        finalPrice = Math.floor(finalPrice / 2);
-        couponUsed = true;
-      }
 
-      if (!confNorm.includes("oui") && !couponUsed) {
-        await repondre("❌ Opération annulée. Tape `close` ou une autre commande.");
-        userInput = await waitFor(120000);
-        continue;
-      }
+        // Coupon handling
+        let couponUsed = false;
+        let finalPrice = bumpedPrix;
+        if (confNorm.includes("+coupon")) {
+          const userCoupons = parseInt(userData.coupons || 0);
+          if (userCoupons < 100) {
+            await repondre("❌ Pas assez de coupons (100 nécessaires). Opération annulée.");
+            userInput = await waitFor(120000);
+            continue;
+          }
+          finalPrice = Math.floor(finalPrice / 2);
+          couponUsed = true;
+        }
 
-      // Retirer coupon si utilisé
-      if (couponUsed) {
-        await MyNeoFunctions.updateUser(auteur_Message, { coupons: userData.coupons - 100 });
-        await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée.");
-      }
-
-      // Achat
-      if (mode === 'achat') {
-        // Vérification NP
-        let np = parseInt(userData.np || 0);
-        if (np < 1) {
-          await repondre("❌ Tu n’as pas assez de NP.");
+        // If user didn't confirm
+        if (!confNorm.includes("oui") && !couponUsed) {
+          await repondre("❌ Opération annulée. Tape `close` ou une autre commande.");
           userInput = await waitFor(120000);
           continue;
         }
-        await MyNeoFunctions.updateUser(auteur_Message, { np: np - 1 });
 
-        // Ajouter carte à la fiche
-        let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
-        if (!currentCards.includes(card.name)) {
-          currentCards.push(card.name);
-          await setfiche("cards", currentCards.join("\n"), auteur_Message);
+        // Apply coupon deduction if used
+        if (couponUsed) {
+          await MyNeoFunctions.updateUser(auteur_Message, { coupons: (parseInt(userData.coupons||0) - 100) });
+          await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée.");
         }
 
-        // Facture
-        await ovl.sendMessage(ms_org, {
-          image: { url: card.image },
-          caption: `╭───〔 🛍️ REÇU D’ACHAT 〕───────
+        // ----------------- ACHAT -----------------
+        if (mode === 'achat') {
+          // Vérification NP
+          let np = parseInt(userData.np || 0);
+          if (np < 1) {
+            await repondre("❌ Tu n’as pas assez de NP.");
+            userInput = await waitFor(120000);
+            continue;
+          }
+
+          // Vérifier si le joueur a soit des golds (fiche) soit des nc (userData)
+          let golds = parseInt(fiche.golds || 0);
+          let nc = parseInt(userData.nc || 0);
+          if (golds < finalPrice && nc < finalPrice) {
+            await repondre("❌ Pas assez de fonds (Golds ou NC).");
+            userInput = await waitFor(120000);
+            continue;
+          }
+
+          // Débit NP
+          await MyNeoFunctions.updateUser(auteur_Message, { np: np - 1 });
+
+          // Préférence débit Golds si disponible, sinon NC
+          if (golds >= finalPrice) {
+            await setfiche("golds", golds - finalPrice, auteur_Message);
+          } else {
+            await MyNeoFunctions.updateUser(auteur_Message, { nc: nc - finalPrice });
+          }
+
+          // Ajouter carte à la fiche
+          let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
+          if (!currentCards.includes(card.name)) {
+            currentCards.push(card.name);
+            await setfiche("cards", currentCards.join("\n"), auteur_Message);
+          }
+
+          // Facture d'achat
+          await ovl.sendMessage(ms_org, {
+            image: { url: card.image },
+            caption: `╭───〔 🛍️ REÇU D’ACHAT 〕───────
 
 👤 Client : ${fiche.code_fiche}
 
@@ -191,88 +251,92 @@ Tu as 1 minute pour répondre.`
 
 💳 Paiement :
 • 1 NP
-• ${finalPrice} 🧭
+• ${formatNumber(finalPrice)} 🧭
 
 Merci pour ton achat !
 ╰───────────────────`
-        }, { quoted: ms });
+          }, { quoted: ms });
 
-      } else { // Vente
-        let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
-        const idx = currentCards.indexOf(card.name);
-        if (idx !== -1) currentCards.splice(idx, 1);
-        await setfiche("cards", currentCards.join("\n"), auteur_Message);
+        } else { // ----------------- VENTE -----------------
+          // Vérifier que le joueur possède la carte demandée
+          let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
 
-        const halfPrice = Math.floor(finalPrice / 2);
-        await ovl.sendMessage(ms_org, {
-          image: { url: card.image },
-          caption: `╭───〔 🛍️ REÇU DE VENTE 〕───────
+          // Recherche dans la fiche : priorise exact match (cas sensible), sinon startsWith/includes
+          let ownedIndex = currentCards.findIndex(n => n.toLowerCase() === card.name.toLowerCase());
+          if (ownedIndex === -1) {
+            // try partial matches in fiche
+            const partials = currentCards.filter(n => n.toLowerCase().includes(q));
+            if (partials.length === 0) {
+              await repondre(`❌ Tu ne possèdes pas cette carte (${card.name}).`);
+              userInput = await waitFor(120000);
+              continue;
+            } else if (partials.length === 1) {
+              // use that
+              card = allCards.find(c => c.name.toLowerCase() === partials[0].toLowerCase()) || card;
+              ownedIndex = currentCards.findIndex(n => n === card.name);
+            } else {
+              // multiple partials → ask which
+              let selMsg = "📋 *Cartes correspondantes dans ta fiche :*\n\n";
+              partials.forEach((n, i) => selMsg += `${i+1}. ${n}\n`);
+              selMsg += `\nTape le numéro (1-${partials.length}) ou 'close'.`;
+              await repondre(selMsg);
+              let sel = await waitFor(60000);
+              const idx = parseInt(sel);
+              if (isNaN(idx) || idx < 1 || idx > partials.length) {
+                await repondre("❌ Numéro invalide ou temps écoulé.");
+                userInput = await waitFor(120000);
+                continue;
+              }
+              const chosen = partials[idx-1];
+              card = allCards.find(c => c.name.toLowerCase() === chosen.toLowerCase());
+              ownedIndex = currentCards.findIndex(n => n === card.name);
+            }
+          }
+
+          if (ownedIndex === -1) {
+            await repondre("❌ Carte introuvable dans ta fiche.");
+            userInput = await waitFor(120000);
+            continue;
+          }
+
+          // Retirer la carte et créditer la moitié du prix
+          const halfPrice = Math.floor(finalPrice / 2);
+          currentCards.splice(ownedIndex, 1);
+          await setfiche("cards", currentCards.join("\n"), auteur_Message);
+
+          // crédit preference: golds on fiche if you use that currency, else nc
+          let goldsAfter = parseInt(fiche.golds || 0) + halfPrice;
+          await setfiche("golds", goldsAfter, auteur_Message);
+
+          // Facture de vente
+          await ovl.sendMessage(ms_org, {
+            image: { url: card.image },
+            caption: `╭───〔 🛍️ REÇU DE VENTE 〕───────
 
 👤 Client : ${fiche.code_fiche}
 
 🎴 Carte retirée : ${card.name}
 
 💳 Tu as reçu :
-• ${halfPrice} 🧭
+• ${formatNumber(halfPrice)} 🧭
 
 Merci pour ta vente !
 ╰───────────────────`
-        }, { quoted: ms });
-      }
+          }, { quoted: ms });
+        }
 
-      // Re-boucle pour nouvelle commande
-      userInput = await waitFor(120000);
+        // ready for next command
+        userInput = await waitFor(120000);
+      } catch (innerErr) {
+        console.log("❌ ERREUR SESSION BOUTIQUE (interne) :", innerErr && innerErr.stack ? innerErr.stack : innerErr);
+        await repondre("❌ Une erreur est survenue dans la boutique.");
+        // continue session (don't break) — wait for next input
+        userInput = await waitFor(120000);
+      }
     }
 
   } catch (e) {
-    console.log("❌ ERREUR Boutique :", e);
+    console.log("❌ ERREUR Boutique (critique) :", e && e.stack ? e.stack : e);
     return repondre("❌ Une erreur est survenue dans la boutique.");
-  }
-});
-
-
-// ---- Optionnel : si tu veux garder la commande +cards, utilise une regex correcte ----
-ovlcmd({
-  nom_cmd: /^\+cards/i,
-  isCustom: true
-}, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
-  try {
-    let txt = ms.body || "";
-    txt = txt.replace(/^\+cards/i, "").trim();
-
-    if (!txt) return repondre("❌ Tu dois écrire un nom après +cards…");
-
-    await ovl.react(ms, "🔎");
-
-    const clean = txt.replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    let found = [];
-    for (const [placementKey, placementCards] of Object.entries(cards)) {
-      for (const c of placementCards) {
-        const cleanName = c.name.toLowerCase().replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (cleanName.includes(clean)) found.push({ ...c, placement: placementKey });
-      }
-    }
-
-    if (found.length === 0) return repondre("❌ Aucune carte ne correspond à : " + txt);
-    if (found.length > 1) {
-      let msg = "📋 Plusieurs cartes trouvées :\n\n";
-      found.forEach((c, i) => {
-        msg += `${i+1}. ${c.name} — Grade: ${c.grade} — ${c.price}\n`;
-      });
-      msg += "\n🔎 Tape un nom plus précis.";
-      return repondre(msg);
-    }
-
-    const card = found[0];
-    await ovl.sendMessage(ms_org, {
-      image: { url: card.image },
-      caption: `🎴 *${card.name}*`
-    }, { quoted: ms });
-
-    await ovl.react(ms, "✅");
-
-  } catch (e) {
-    console.log("❌ ERREUR +cards :", e);
-    return repondre("❌ Une erreur est survenue.");
   }
 });
