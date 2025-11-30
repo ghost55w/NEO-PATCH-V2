@@ -208,7 +208,7 @@ Merci pour ta vente !
         
 
 ovlcmd({
-nom_cmd: /^(+cards)/i,
+nom_cmd: /^(cards)/i,
 isCustom: true
 }, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
 try {
