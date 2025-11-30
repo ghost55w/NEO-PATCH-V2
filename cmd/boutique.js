@@ -519,9 +519,6 @@ Prix : ${pricePreviewString}${ownersForPreview >= 2 ? "  (Prix augmenté car dé
 });
 
 //SHOWING CARD TO THE PLAYER BY DEMAND
-const { ovlcmd } = require('../lib/ovlcmd');
-const { cards } = require('../DataBase/cards');
-
 ovlcmd({
     nom_cmd: /^(\+cards)/i,   // Détection automatique de : +cardsxxxx
     isCustom: true
