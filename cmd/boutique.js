@@ -15,88 +15,81 @@ react: "🛒",
 classe: "NEO_GAMES🎰"
 }, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
 try {
+// Récupération des données utilisateur et fiche
 const userData = await MyNeoFunctions.getUserData(auteur_Message);
 const fiche = await getData({ jid: auteur_Message });
+if (!userData || !fiche) return repondre("❌ Impossible de récupérer ta fiche.");
 
-    if (!userData || !fiche)
-        return repondre("❌ Impossible de récupérer ta fiche.");
-
+    // Message d'accueil boutique
     await ovl.sendMessage(ms_org, {
         image: { url: 'https://files.catbox.moe/i87tdr.png' },
         caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
 
 😃Bienvenue dans la boutique NEO🛍️Store🛒, pour faire un achat il vous suffit de taper comme ceci :
-*🛍️Achat: sasuke(Hebi)/ 🛍️Vente: sasuke(Hebi). Après cela attendez la validation de votre achat ou vente.  #Happy202️⃣6️⃣🎊🎄
+🛍️achat: sasuke(Hebi)/ 🛍️vente: sasuke(Hebi). Après cela attendez la validation de votre achat ou de votre vente.
+#Happy202️⃣6️⃣🎊🎄
 ╰───────────────────
 🔷NEO🛍️STORE`
 }, { quoted: ms });
 
+    // Fonction pour attendre message du joueur
     const waitFor = async (timeout = 120000) => {
         const r = await ovl.recup_msg({ auteur: auteur_Message, ms_org, temps: timeout });
         const txt = r?.message?.extendedTextMessage?.text || r?.message?.conversation || "";
         return txt ? txt.trim().toLowerCase() : "";
     };
 
-    const findCardByName = (name) => {
-        const low = name.toLowerCase();
-        for (const [placementKey, placementCards] of Object.entries(cards)) {
-            for (const c of placementCards) {
-                if (c.name.toLowerCase() === low) return { ...c, placement: placementKey };
-            }
-        }
-        for (const [placementKey, placementCards] of Object.entries(cards)) {
-            for (const c of placementCards) {
-                if (c.name.toLowerCase().includes(low)) return { ...c, placement: placementKey };
-            }
-        }
-        return null;
-    };
-
+    // Boucle de session boutique
     let sessionOpen = true;
-    let initialInput = await waitFor(120000);
-    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
+    let userInput = await waitFor(120000);
+    if (!userInput) return repondre("❌ Temps écoulé. Session fermée.");
 
     while (sessionOpen) {
-        if (initialInput === "close") {
-            sessionOpen = false;
-            return repondre("✅ Boutique fermée.");
+        if (userInput === "close") {
+            await repondre("✅ Boutique fermée.");
+            break;
         }
 
-        let mode = null;
-        if (/^(🛍️)?\s*achat\s*:/i.test(initialInput)) mode = 'achat';
-        else if (/^(🛍️)?\s*vente\s*:/i.test(initialInput)) mode = 'vente';
-        else mode = 'achat';
+        // Détecter achat ou vente
+        let mode = "achat"; // par défaut
+        if (/^(🛍️)?\s*achat\s*:/i.test(userInput)) mode = 'achat';
+        else if (/^(🛍️)?\s*vente\s*:/i.test(userInput)) mode = 'vente';
 
-        let query = initialInput.includes(":") ? initialInput.split(":")[1].trim() : initialInput;
+        // Extraire le texte après les deux-points
+        let query = userInput.includes(":") ? userInput.split(":")[1].trim() : userInput.trim();
         if (!query) {
-            initialInput = await waitFor(120000);
-            if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
+            userInput = await waitFor(120000);
             continue;
         }
 
-        const card = findCardByName(query);
-        if (!card) {
-            await repondre(`❌ Carte introuvable pour : ${query}`);
-            initialInput = await waitFor(120000);
+        // Recherche carte
+        const cleanQuery = query.replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        let found = [];
+        for (const [placementKey, placementCards] of Object.entries(cards)) {
+            for (const c of placementCards) {
+                const cleanName = c.name.toLowerCase().replace(/[\s\-\_]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (cleanName.includes(cleanQuery)) found.push({ ...c, placement: placementKey });
+            }
+        }
+
+        if (found.length === 0) {
+            await repondre(`❌ Aucune carte trouvée pour : ${query}`);
+            userInput = await waitFor(120000);
             continue;
         }
 
-        // Prix
+        const card = found[0]; // on prend la première correspondance
         let basePrix = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
-        let bumpedPrix = basePrix;
 
-        // Vérification si déjà possédée par >=2 joueurs (prix bump)
-        const owners = await (async () => {
-            try {
-                if (MyNeoFunctions.getAllFiches) return (await MyNeoFunctions.getAllFiches()).filter(f=>f.cards?.includes(card.name)).length;
-                return 0;
-            } catch { return 0; }
-        })();
-        if (owners >= 2) bumpedPrix += 500000;
+        // Vérification si déjà possédée par >=2 joueurs pour bump prix
+        let owners = 0;
+        if (MyNeoFunctions.getAllFiches) {
+            const allFiches = await MyNeoFunctions.getAllFiches();
+            owners = allFiches.filter(f => (f.cards || "").split("\n").map(x => x.trim().toLowerCase()).includes(card.name.toLowerCase())).length;
+        }
+        let bumpedPrix = owners >= 2 ? basePrix + 500000 : basePrix;
 
-        let priceString = bumpedPrix.toLocaleString() + "🧭";
-
-        // Prévisualisation avant confirmation
+        // Affichage carte + confirmation
         await ovl.sendMessage(ms_org, {
             image: { url: card.image },
             caption: `🎴 *Carte :* ${card.name}
@@ -105,32 +98,38 @@ Nom : ${card.name}
 Grade : ${card.grade}
 Catégorie : ${card.category}
 Placement : ${card.placement}
-🛍️Prix : ${priceString}${owners >= 2 ? "  (Prix augmenté car déjà possédée par >=2 joueurs)" : ""}
+🛍️Prix : ${bumpedPrix} 🧭
 
-✔️ Confirmer ${mode === 'achat' ? 'l'achat' : 'la vente'} ? (oui / non / oui +coupon)
+✔️ Confirmer ${mode === 'achat' ? 'l'achat' : 'la vente'} ? (oui / non / +coupon)
 
 Tu as 1 minute pour répondre.`
 }, { quoted: ms });
 
+        // Attente confirmation
         let confNorm = await waitFor(60000);
-        if (!confNorm) return repondre("❌ Temps écoulé. Session fermée.");
+        if (!confNorm) {
+            userInput = await waitFor(120000);
+            continue;
+        }
 
-        // Coupon
+        // Vérification coupon
         let couponUsed = false;
         let finalPrice = bumpedPrix;
         if (confNorm.includes("+coupon")) {
             const userCoupons = parseInt(userData.coupons || 0);
             if (userCoupons < 100) {
                 await repondre("❌ Pas assez de coupons (100 nécessaires). Achat annulé.");
-                initialInput = await waitFor(120000); continue;
+                userInput = await waitFor(120000);
+                continue;
             }
             finalPrice = Math.floor(finalPrice / 2);
             couponUsed = true;
         }
 
         if (!confNorm.includes("oui") && !couponUsed) {
-            await repondre("❌ Opération annulée. Tu peux choisir un autre numéro ou taper `close`.");
-            initialInput = await waitFor(120000); continue;
+            await repondre("❌ Opération annulée. Tape `close` ou une autre commande.");
+            userInput = await waitFor(120000);
+            continue;
         }
 
         // Retirer coupon si utilisé
@@ -139,70 +138,65 @@ Tu as 1 minute pour répondre.`
             await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée.");
         }
 
+        // Achat
         if (mode === 'achat') {
-            // Vérification ressources
-            if (parseInt(userData.np || 0) < 1) {
-                await repondre("❌ Pas assez de NP.");
-                initialInput = await waitFor(120000); continue;
+            // Vérification NP
+            let np = parseInt(userData.np || 0);
+            if (np < 1) {
+                await repondre("❌ Tu n’as pas assez de NP.");
+                userInput = await waitFor(120000); continue;
+            }
+            await MyNeoFunctions.updateUser(auteur_Message, { np: np - 1 });
+
+            // Ajouter carte à la fiche
+            let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
+            if (!currentCards.includes(card.name)) {
+                currentCards.push(card.name);
+                await setfiche("cards", currentCards.join("\n"), auteur_Message);
             }
 
-            // Débit NP
-            await MyNeoFunctions.updateUser(auteur_Message, { np: parseInt(userData.np || 0) - 1 });
-
-            // Ajouter carte
-            let currentCards = (fiche.cards || "").split("\n").map(x=>x.trim()).filter(Boolean);
-            if (!currentCards.includes(card.name)) currentCards.push(card.name);
-            await setfiche("cards", currentCards.join("\n"), auteur_Message);
-
-            // Facture finale
+            // Facture
             await ovl.sendMessage(ms_org, {
                 image: { url: card.image },
-                caption: `
+                caption: `╭───〔 🛍️ REÇU D’ACHAT 〕───────
 
-╭───〔 🛍️ REÇU D’ACHAT 〕───────
 👤 Client : ${fiche.code_fiche}
 
-🎴 ${card.name} ajoutée à ta fiche.
+🎴 Carte ajoutée : ${card.name}
 
 💳 Paiement :
 • 1 NP
-• ${finalPrice.toLocaleString()} 🧭
+• ${finalPrice} 🧭
 
 Merci pour ton achat !
 ╰───────────────────`
 }, { quoted: ms });
 
         } else { // Vente
-            let currentCards = (fiche.cards || "").split("\n").map(x=>x.trim()).filter(Boolean);
-            const idx = currentCards.findIndex(n=>n===card.name);
-            if (idx === -1) {
-                await repondre(`❌ Carte introuvable dans ta fiche.`);
-                initialInput = await waitFor(120000); continue;
-            }
-
-            const halfPrice = Math.floor(finalPrice / 2);
-            currentCards.splice(idx, 1);
+            let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
+            const idx = currentCards.indexOf(card.name);
+            if (idx !== -1) currentCards.splice(idx, 1);
             await setfiche("cards", currentCards.join("\n"), auteur_Message);
 
+            const halfPrice = Math.floor(finalPrice / 2);
             await ovl.sendMessage(ms_org, {
                 image: { url: card.image },
-                caption: `
+                caption: `╭───〔 🛍️ REÇU DE VENTE 〕───────
 
-╭───〔 🛍️ REÇU DE VENTE 〕───────
 👤 Client : ${fiche.code_fiche}
 
-🎴 ${card.name} retirée de ta fiche.
+🎴 Carte retirée : ${card.name}
 
 💳 Tu as reçu :
-• ${halfPrice.toLocaleString()} 🧭
+• ${halfPrice} 🧭
 
 Merci pour ta vente !
 ╰───────────────────`
 }, { quoted: ms });
 }
 
-        // Attente nouvelle commande ou close
-        initialInput = await waitFor(120000);
+        // Re-boucle pour nouvelle commande
+        userInput = await waitFor(120000);
     }
 
 } catch (e) {
@@ -210,8 +204,8 @@ Merci pour ta vente !
     return repondre("❌ Une erreur est survenue dans la boutique.");
 }
 
-}); 
-
+});
+        
 
 ovlcmd({
 nom_cmd: /^(+cards)/i,
