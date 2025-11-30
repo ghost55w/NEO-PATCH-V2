@@ -545,38 +545,33 @@ Prix : ${pricePreviewString}${ownersForPreview >= 2 ? "  (Prix augmenté car dé
     }
 });
 
-//SHOWING CARD TO THE PLAYER BY DEMAND
+// SHOWING CARD TO THE PLAYER BY DEMAND
 ovlcmd({
-    nom_cmd: /^(\+card)/i,   // Détection automatique de : +cardsxxxx
+    nom_cmd: /^(\+cards)/i,
     isCustom: true
 }, async (ms_org, ovl, { ms, auteur_Message, repondre, prefixe, commande }) => {
-
     try {
-        // Texte taper par le joueur
         let txt = ms.body || "";
-        txt = txt.toLowerCase().replace(/\+cards/g, "").trim();
+        txt = txt.toLowerCase().replace(/^\+cards/i, "").trim();
 
         if (!txt)
             return repondre("❌ Tu dois écrire un nom après +cards…");
 
+        // Réaction pour confirmer que le bot lit la commande
+        await ovl.react(ms, "🔎");
+
         // Nettoyage extrême → enlève espaces, (), -, _ etc.
-        let clean = txt
-            .replace(/[\s\(\)\-\_]/g, "")
+        let clean = txt.replace(/[\s\-\_]/g, "")
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
         let found = [];
 
-        // On fouille TOUTES les cards dans toutes les catégories
         for (const [placementKey, placementCards] of Object.entries(cards)) {
             for (const c of placementCards) {
-
-                // Nettoyage du nom dans la BDD
                 let cleanName = c.name.toLowerCase()
-                    .replace(/[\s\(\)\-\_]/g, "")
+                    .replace(/[\s\-\_]/g, "")
                     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-                // Le joueur peut taper :
-                // sasukehebi, sasuke(hebi), sasukehebisplusargentsp etc.
                 if (cleanName.includes(clean)) {
                     found.push({ ...c, placement: placementKey });
                 }
@@ -584,10 +579,9 @@ ovlcmd({
         }
 
         if (found.length === 0)
-            return repondre("❌ Aucune Card ne correspond exactement à : " + txt);
+            return repondre("❌ Aucune Card ne correspond à : " + txt);
 
         if (found.length > 1) {
-            // Plusieurs résultats → on envoie la liste rapide
             let msg = "📋 Plusieurs cards trouvées :\n\n";
             found.forEach((c, i) => {
                 msg += `${i + 1}. ${c.name} — Grade: ${c.grade} — ${c.price}\n`;
@@ -596,13 +590,15 @@ ovlcmd({
             return repondre(msg);
         }
 
-        // 1 SEULE CARD → on l’envoie directement
         const card = found[0];
 
-        return ovl.sendMessage(ms_org, {
+        await ovl.sendMessage(ms_org, {
             image: { url: card.image },
             caption: `🎴 *${card.name}*\n\nGrade : ${card.grade}\nCatégorie : ${card.category}\nPlacement : ${card.placement}\nPrix : ${card.price}`
         }, { quoted: ms });
+
+        // Réaction de succès
+        await ovl.react(ms, "✅");
 
     } catch (e) {
         console.log("❌ ERREUR +cards :", e);
