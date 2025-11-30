@@ -24,19 +24,11 @@ ovlcmd({
 
         // open session message
         await ovl.sendMessage(ms_org, {
-            image: { url: 'https://files.catbox.moe/ye33nv.png' },
-            caption: `╭────〔 🛍️ BOUTIQUE NEO🛒 〕
-Bienvenue dans la boutique.
+            image: { url: 'https://files.catbox.moe/i87tdr.png' },
+            caption: `╭────〔 *🛍️BOUTIQUE🛒* 〕
 
-Tu as 2 minutes pour écrire le nom d’une carte ou une commande :
-• 🛍️Achat: <Nom ou détail>
-• 🛍️Vente: <Nom ou détail>
-
-Exemples :
-🛍️Achat: Sasuke(EMS)
-🛍️Vente: Sasuke(EMS) Argent SP
-
-Tape \`close\` pour fermer la boutique.
+😃Bienvenue dans la boutique NEO🛍️Store🛒, pour faire un achat il vous suffit de taper comme ceci :
+*🛍️achat: sasuke(Hebi)/ 🛍️vente: sasuke(Hebi)*. Après cela attendez la validation de votre achat où de votre vente.  *#Happy202️⃣6️⃣🎊🎄*
 ╰───────────────────
                   *🔷NEO🛍️STORE*`
         }, { quoted: ms });
