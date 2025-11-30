@@ -97,14 +97,21 @@ if (!card) {
   userInput = await waitFor(120000);
   continue;
 }
-       
-      // Vérification si déjà possédée par >=2 joueurs pour bump prix
-      let owners = 0;
-      if (MyNeoFunctions.getAllFiches) {
-        const allFiches = await MyNeoFunctions.getAllFiches();
-        owners = allFiches.filter(f => (f.cards || "").split("\n").map(x => x.trim().toLowerCase()).includes(card.name.toLowerCase())).length;
-      }
-      let bumpedPrix = owners >= 2 ? basePrix + 500000 : basePrix;
+
+// Prix de base de la carte
+let basePrix = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
+
+// Vérification si déjà possédée par >=2 joueurs pour bump prix
+let owners = 0;
+if (MyNeoFunctions.getAllFiches) {
+  const allFiches = await MyNeoFunctions.getAllFiches();
+  owners = allFiches.filter(f =>
+    (f.cards || "")
+      .split("\n")
+      .map(x => x.trim().toLowerCase())
+      .includes(card.name.toLowerCase())
+  ).length;
+}
 
       // Affichage carte + confirmation
       await ovl.sendMessage(ms_org, {
