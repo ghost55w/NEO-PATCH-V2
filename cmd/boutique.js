@@ -525,3 +525,71 @@ Prix : ${pricePreviewString}${ownersForPreview >= 2 ? "  (Prix augmenté car dé
         repondre("❌ Une erreur est survenue dans la boutique.");
     }
 });
+
+//SHOWING CARD TO THE PLAYER BY DEMAND
+const { ovlcmd } = require('../lib/ovlcmd');
+const { cards } = require('../DataBase/cards');
+
+ovlcmd({
+    nom_cmd: /^(\+cards)/i,   // Détection automatique de : +cardsxxxx
+    isCustom: true
+}, async (ms_org, ovl, { ms, auteur_Message, repondre, prefixe, commande }) => {
+
+    try {
+        // Texte taper par le joueur
+        let txt = ms.body || "";
+        txt = txt.toLowerCase().replace(/\+cards/g, "").trim();
+
+        if (!txt)
+            return repondre("❌ Tu dois écrire un nom après +cards…");
+
+        // Nettoyage extrême → enlève espaces, (), -, _ etc.
+        let clean = txt
+            .replace(/[\s\(\)\-\_]/g, "")
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        let found = [];
+
+        // On fouille TOUTES les cards dans toutes les catégories
+        for (const [placementKey, placementCards] of Object.entries(cards)) {
+            for (const c of placementCards) {
+
+                // Nettoyage du nom dans la BDD
+                let cleanName = c.name.toLowerCase()
+                    .replace(/[\s\(\)\-\_]/g, "")
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+                // Le joueur peut taper :
+                // sasukehebi, sasuke(hebi), sasukehebisplusargentsp etc.
+                if (cleanName.includes(clean)) {
+                    found.push({ ...c, placement: placementKey });
+                }
+            }
+        }
+
+        if (found.length === 0)
+            return repondre("❌ Aucune Card ne correspond exactement à : " + txt);
+
+        if (found.length > 1) {
+            // Plusieurs résultats → on envoie la liste rapide
+            let msg = "📋 Plusieurs cards trouvées :\n\n";
+            found.forEach((c, i) => {
+                msg += `${i + 1}. ${c.name} — Grade: ${c.grade} — ${c.price}\n`;
+            });
+            msg += "\n🔎 Tape un nom plus précis.";
+            return repondre(msg);
+        }
+
+        // 1 SEULE CARD → on l’envoie directement
+        const card = found[0];
+
+        return ovl.sendMessage(ms_org, {
+            image: { url: card.image },
+            caption: `🎴 *${card.name}*\n\nGrade : ${card.grade}\nCatégorie : ${card.category}\nPlacement : ${card.placement}\nPrix : ${card.price}`
+        }, { quoted: ms });
+
+    } catch (e) {
+        console.log("❌ ERREUR +cards :", e);
+        return repondre("❌ Une erreur est survenue.");
+    }
+});
