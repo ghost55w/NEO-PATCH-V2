@@ -283,267 +283,124 @@ Placement : ${card.placement}
 *Tu as 1 minute pour répondre.*`
                 }, { quoted: ms });
 
-// wait for confirmation (1 minute)
-const conf = await waitFor(60000);
-const confNorm = (conf || "").toLowerCase().trim();
 
-if (!confNorm) {
-    await repondre("❌ Temps écoulé pour la confirmation. Opération annulée.");
-    initialInput = await waitFor(120000);
-    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-    continue;
-}
+// ---- Achat/Vente confirmé ----
+let finalPrice = bumpedPrix; // Toujours défini en premier
 
-// Gestion coupon
+// Vérification coupon
 let couponUsed = false;
-
-// Si l'utilisateur veut appliquer un coupon
-if (confNorm.includes("oui") && confNorm.includes("+coupon")) {
-    const userCoupons = parseInt(userData.coupons || 0); // Assurez-vous que MyNeoFunctions contient "coupons"
+if (confNorm.includes("+coupon")) {
+    const userCoupons = parseInt(userData.coupons || 0);
     if (userCoupons < 100) {
-        await repondre("❌ Tu n’as pas assez de coupons pour appliquer la réduction (-50%). Achat annulé.");
+        await repondre("❌ Pas assez de coupons (100 nécessaires). Achat annulé.");
         initialInput = await waitFor(120000);
         if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
         continue;
-    } else {
-        finalPrice = Math.floor(finalPrice / 2); // 50% de réduction
-        couponUsed = true;
     }
+    finalPrice = Math.floor(finalPrice / 2); // 50% réduction
+    couponUsed = true;
 }
 
-// Achat normal sans coupon
-// si confNorm contient juste oui, on laisse finalPrice inchangé
-
-// Si ce n'est pas un oui valide et pas coupon → annuler
-if (!["oui", "yes", "y"].some(v => confNorm.includes(v)) && !couponUsed) {
+// Vérification confirmation "oui"
+if (!confNorm.includes("oui") && !confNorm.includes("yes") && !couponUsed) {
     await repondre("❌ Opération annulée. Tu peux choisir un autre numéro ou taper `close`.");
     initialInput = await waitFor(120000);
     if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
     continue;
 }
 
-// Retirer 100 coupons si utilisés
+// Retirer coupon si utilisé
 if (couponUsed) {
     await MyNeoFunctions.updateUser(auteur_Message, { coupons: userData.coupons - 100 });
-    await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée sur le prix de la carte.");
+    await repondre("🎟️ Coupon utilisé ! 50% de réduction appliquée.");
 }
 
-                // Proceed with achat or vente using bumpedPrix
-                const finalPrice = bumpedPrix;
-                const usesGold = (card.price || "").includes("🧭");
-                const usesNC = (card.price || "").includes("🔷");
+// Achat
+if (mode === 'achat') {
+    let np = parseInt(userData.np || 0);
+    let nc = parseInt(userData.nc || 0);
+    let golds = parseInt(fiche.golds || 0);
 
-                if (mode === 'achat') {
-                    // verify resources
-                    const prix = finalPrice || 0;
-                    let np = parseInt(userData.np || 0);
-                    let golds = parseInt(fiche.golds || 0);
-                    let nc = parseInt(userData.nc || 0);
+    // Vérification ressources
+    if (np < 1) {
+        await repondre("❌ Tu n’as pas assez de NP.");
+        initialInput = await waitFor(120000); continue;
+    }
+    if (usesGold && golds < finalPrice) {
+        await repondre("❌ Pas assez de G🧭.");
+        initialInput = await waitFor(120000); continue;
+    }
+    if (usesNC && nc < finalPrice) {
+        await repondre("❌ Pas assez de NC 🔷.");
+        initialInput = await waitFor(120000); continue;
+    }
 
-                    if (np < 1) {
-                        await repondre("❌ Tu n’as pas assez de NP.");
-                        initialInput = await waitFor(120000);
-                        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                        continue;
-                    }
-                    if (usesGold && golds < prix) {
-                        await repondre("❌ Pas assez de G🧭.");
-                        initialInput = await waitFor(120000);
-                        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                        continue;
-                    }
-                    if (usesNC && nc < prix) {
-                        await repondre("❌ Pas assez de NC.");
-                        initialInput = await waitFor(120000);
-                        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                        continue;
-                    }
+    // Débit ressources
+    await MyNeoFunctions.updateUser(auteur_Message, { np: np - 1 });
+    if (usesGold) await setfiche("golds", golds - finalPrice, auteur_Message);
+    if (usesNC) await MyNeoFunctions.updateUser(auteur_Message, { nc: nc - finalPrice });
 
-                    // check card limit
-                    let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
-                    if (currentCards.length >= config.CARDS_NOMBRE) {
-                        await repondre(`❌ Limite atteinte (${config.CARDS_NOMBRE} cartes max).`);
-                        initialInput = await waitFor(120000);
-                        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                        continue;
-                    }
+    // Ajouter carte
+    let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
+    if (!currentCards.includes(card.name)) {
+        currentCards.push(card.name);
+        await setfiche("cards", currentCards.join("\n"), auteur_Message);
+    }
 
-                    // perform debits
-                    await MyNeoFunctions.updateUser(auteur_Message, { np: np - 1 });
-                    if (usesGold) await setfiche("golds", golds - prix, auteur_Message);
-                    if (usesNC) await MyNeoFunctions.updateUser(auteur_Message, { nc: nc - prix });
-
-                    // add the card to fiche if not present
-                    if (!currentCards.includes(card.name)) {
-                        currentCards.push(card.name);
-                        await setfiche("cards", currentCards.join("\n"), auteur_Message);
-                    }
-
-                    // receipt
-                    const facture = `
-╭───〔 🛍️ *REÇU D’ACHAT* 〕───────
+    // Facture
+    await ovl.sendMessage(ms_org, {
+        image: { url: card.image },
+        caption: `
+╭───〔 🛍️ REÇU D’ACHAT 〕───────
 👤 Client : ${fiche.code_fiche}
 
-🎴 *${card.name}* ajoutée à ta fiche.
+🎴 Carte ajoutée : ${card.name}
 
 💳 Paiement :
 • 1 NP
-• ${formatNumber(prix)} ${usesNC ? "🔷" : "🧭"}
+• ${formatNumber(finalPrice)} ${usesNC ? "🔷" : "🧭"}
 
 Merci pour ton achat !
-╰───────────────────`;
+╰───────────────────`
+    }, { quoted: ms });
 
-                    await ovl.sendMessage(ms_org, { image: { url: card.image }, caption: facture }, { quoted: ms });
-                    // refresh fiche after change
-                    // re-fetch fiche to keep data consistent
-                    // (best-effort; if getData updates, comment out if redundant)
-                    try { 
-                        // eslint-disable-next-line no-unused-vars
-                        // fiche = await getData({ jid: auteur_Message }); // if fiche is const, skip or reassign if allowed
-                    } catch(e){}
+} else { // Vente
+    let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
+    const idx = currentCards.findIndex(n => n === card.name);
+    if (idx === -1) {
+        await repondre(`❌ Carte introuvable dans ta fiche.`);
+        initialInput = await waitFor(120000); continue;
+    }
 
-                    initialInput = await waitFor(120000);
-                    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                    continue;
-                } else {
-                    // vente: remove card and give 50% of finalPrice
-                    let currentCards = (fiche.cards || "").split("\n").map(x => x.trim()).filter(Boolean);
-                    let idx = currentCards.findIndex(n => n === card.name);
-                    if (idx === -1) {
-                        idx = currentCards.findIndex(n => n.toLowerCase().includes(nameToken.toLowerCase()));
-                    }
-                    if (idx === -1) {
-                        await repondre(`❌ Impossible de trouver cette carte (${card.name}) dans ta fiche.`);
-                        initialInput = await waitFor(120000);
-                        if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                        continue;
-                    }
+    const halfPrice = Math.floor(finalPrice / 2);
+    currentCards.splice(idx, 1);
+    await setfiche("cards", currentCards.join("\n"), auteur_Message);
 
-                    const half = Math.floor(finalPrice / 2);
+    if (usesGold) {
+        let golds = parseInt(fiche.golds || 0);
+        await setfiche("golds", golds + halfPrice, auteur_Message);
+    }
+    if (usesNC) {
+        let nc = parseInt(userData.nc || 0);
+        await MyNeoFunctions.updateUser(auteur_Message, { nc: nc + halfPrice });
+    }
 
-                    currentCards.splice(idx, 1);
-                    await setfiche("cards", currentCards.join("\n"), auteur_Message);
-
-                    if (usesGold) {
-                        let golds = parseInt(fiche.golds || 0);
-                        await setfiche("golds", golds + half, auteur_Message);
-                    }
-                    if (usesNC) {
-                        let nc = parseInt(userData.nc || 0);
-                        await MyNeoFunctions.updateUser(auteur_Message, { nc: nc + half });
-                    }
-
-                    const factureV = `
-╭───〔 🛍️ *REÇU DE VENTE* 〕───────
+    await ovl.sendMessage(ms_org, {
+        image: { url: card.image },
+        caption: `
+╭───〔 🛍️ REÇU DE VENTE 〕───────
 👤 Client : ${fiche.code_fiche}
 
-🎴 *${card.name}* retirée de ta fiche.
+🎴 Carte retirée : ${card.name}
 
 💳 Tu as reçu :
-• ${formatNumber(half)} ${usesNC ? "🔷" : "🧭"}
+• ${formatNumber(halfPrice)} ${usesNC ? "🔷" : "🧭"}
 
 Merci pour ta vente !
-╰───────────────────`;
+╰───────────────────`
+    }, { quoted: ms });
+}
 
-                    await ovl.sendMessage(ms_org, { image: { url: card.image }, caption: factureV }, { quoted: ms });
-
-                    initialInput = await waitFor(120000);
-                    if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                    continue;
-                }
-            } // end exactCandidate handling
-
-            // multiple found -> show list formatted
-            let list = `╭────〔 *🛍️BOUTIQUE🛒* 〕
-
-🛍️📋 Cartes trouvées :
-\`veuillez choisir un numéro\`
-
-`;
-            found.forEach((c, i) => {
-                list += `${i + 1}. ${c.name} - classe: ${c.classe || c.rank || 'N/A'} - Grade: ${c.grade || 'N/A'}\n    🛍️Prix: ${c.price}\n`;
-            });
-            list += `\n╰───────────────────\n                      *🔷NEO🛍️STORE*`;
-
-            await repondre(list + "\n\n🕒 Choisis un numéro (5 minutes) ou tape `close`.");
-
-            // wait for a number or new command
-            let rep2 = await waitFor(300000);
-            if (!rep2) return repondre("❌ Temps écoulé. Session fermée.");
-
-            // If user typed close
-            if (rep2.toLowerCase() === "close") {
-                sessionOpen = false;
-                await repondre("✅ Boutique fermée.");
-                break;
-            }
-
-            // If user typed another achat/vente command, replace initialInput and loop
-            if (/^(🛍️)?\s*achat\s*:/i.test(rep2) || /^(🛍️)?\s*vente\s*:/i.test(rep2)) {
-                initialInput = rep2;
-                continue;
-            }
-
-            const choix = parseInt(rep2.trim());
-            if (isNaN(choix) || choix < 1 || choix > found.length) {
-                await repondre("❌ Numéro invalide. Recommence ou tape `close`.");
-                initialInput = await waitFor(120000);
-                if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                continue;
-            }
-
-            // user selected a card from the list — display its fiche and ask confirmation
-            const card = found[choix - 1];
-
-            // compute price bump for listing preview
-            const ownersForPreview = await countOwners(card.name);
-            const baseP = parseInt((card.price || "").replace(/[^\d]/g, "")) || 0;
-            const bumped = ownersForPreview >= 2 ? baseP + 500000 : baseP;
-            const currencyEmoji = card.price.replace(/[0-9\.,\s]/g, "").trim() || (card.price.includes("🔷") ? "🔷" : "🧭");
-            const pricePreviewString = `${formatNumber(bumped)}${currencyEmoji}`;
-
-            await ovl.sendMessage(ms_org, {
-                image: { url: card.image },
-                caption: `🎴 *Carte sélectionnée :*
-
-Nom : ${card.name}
-Grade : ${card.grade}
-Catégorie : ${card.category}
-Placement : ${card.placement}
-Prix : ${pricePreviewString}${ownersForPreview >= 2 ? "  (Prix augmenté car déjà possédée par >=2 joueurs)" : ""}
-
-✔️ Confirmer ${mode === 'achat' ? 'l\'achat' : 'la vente'} ? (oui / non)
-
-*Tu as 1 minute pour répondre.*`
-            }, { quoted: ms });
-
-            const rep3 = await waitFor(60000);
-            const r3 = (rep3 || "").toLowerCase().trim();
-
-            if (!r3) {
-                await repondre("❌ Temps écoulé pour la confirmation. Opération annulée.");
-                initialInput = await waitFor(120000);
-                if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                continue;
-            }
-
-            if (!["oui", "yes", "y"].includes(r3)) {
-                await repondre("❌ Achat/vente annulé. Tu peux choisir un autre numéro ou taper `close`.");
-                initialInput = await waitFor(120000);
-                if (!initialInput) return repondre("❌ Temps écoulé. Session fermée.");
-                continue;
-            }
-
-            // If confirmed from list, simulate exact flow by setting initialInput to mode + card.name
-            initialInput = `${mode}: ${card.name}`;
-            // loop continues
-        } // end while sessionOpen
-
-    } catch (e) {
-        console.log("❌ ERREUR BOUTIQUE :", e);
-        repondre("❌ Une erreur est survenue dans la boutique.");
-    }
-});
 
 // SHOWING CARD TO THE PLAYER BY DEMAND
 ovlcmd({
