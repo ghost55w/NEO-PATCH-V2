@@ -62,26 +62,73 @@ ovlcmd({
         continue;
       }
 
-      // Recherche carte
-let txt = ms.body
-  .replace(/^🛍️achat[: ]?/i, "")
-  .trim()
-  .toLowerCase();
+ // Nettoyage recherche
+let search = query.toLowerCase().replace(/[\s\-\_]/g, "");
 
-// 1. MATCH EXACT
-let card = allCards.find(c => c.name.toLowerCase() === txt);
-
-// 2. SI PAS DE MATCH EXACT → MATCH PARTIEL
-if (!card) {
-  card = allCards.find(c => c.name.toLowerCase().startsWith(txt));
+// Construire liste cartes
+let allCards = [];
+for (const [placementKey, placementCards] of Object.entries(cards)) {
+  for (const c of placementCards) {
+    allCards.push({ ...c, placement: placementKey });
+  }
 }
 
-if (!card) {
-  card = allCards.find(c => c.name.toLowerCase().includes(txt));
+// MATCH EXACT
+let exact = allCards.filter(c =>
+  c.name.toLowerCase() === query.toLowerCase()
+);
+
+// MATCH COMMENCE PAR
+let starts = allCards.filter(c =>
+  c.name.toLowerCase().replace(/[\s\-\_]/g, "").startsWith(search)
+);
+
+// MATCH PARTIEL
+let partial = allCards.filter(c =>
+  c.name.toLowerCase().replace(/[\s\-\_]/g, "").includes(search)
+);
+
+// Regroupement sans doublons
+let found = [...new Set([...exact, ...starts, ...partial])];
+
+// Aucun résultat
+if (found.length === 0) {
+  await repondre(`❌ Aucune carte trouvée pour : ${query}`);
+  userInput = await waitFor(120000);
+  continue;
 }
 
-if (!card) return repondre("❌ Aucune carte trouvée.");
+ // Plusieurs résultats → afficher liste format premium
+if (found.length > 1) {
 
+  let msg = "╭────〔 *🛍️BOUTIQUE🛒* 〕\n\n";
+  msg += "🛍️📋 *Cartes trouvées :*\n";
+  msg += "`veuillez choisir un numéro`\n\n";
+
+  found.forEach((c, i) => {
+    let prix = parseInt((c.price || "").replace(/[^\d]/g, "")) || 0;
+    msg += `${i + 1}. ${c.name} - classe: ${c.class || "?"} - Grade: ${c.grade || "?"}\n`;
+    msg += `    🛍️Prix: ${formatNumber(prix)}🧭\n`;
+  });
+
+  msg += "\n╰───────────────────\n";
+  msg += "                      *🔷NEO🛍️STORE*";
+
+  await repondre(msg);
+
+  // Attente choix joueur
+  let sel = await waitFor(60000);
+  let num = parseInt(sel);
+
+  if (isNaN(num) || num < 1 || num > found.length) {
+    await repondre("❌ Choix invalide.");
+    userInput = await waitFor(120000);
+    continue;
+  }
+
+  card = found[num - 1];
+}     
+      
       
       // Vérification si déjà possédée par >=2 joueurs pour bump prix
       let owners = 0;
