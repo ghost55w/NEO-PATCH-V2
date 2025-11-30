@@ -10,7 +10,7 @@ catch { return n; }
 };
 
 ovlcmd({
-nom_cmd: "boutique🛍️",
+nom_cmd: "boutique",
 react: "🛒",
 classe: "NEO_GAMES🎰"
 }, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
@@ -205,4 +205,67 @@ Merci pour ta vente !
 }
 
 });
-        
+
+
+ovlcmd({
+nom_cmd: /^(cards)/i,
+isCustom: true
+}, async (ms_org, ovl, { ms, auteur_Message, repondre }) => {
+try {
+let txt = ms.body || "";
+txt = txt.toLowerCase().replace(/^+cards/i, "").trim();
+
+    if (!txt)
+        return repondre("❌ Tu dois écrire un nom après +cards…");
+
+    // Réaction pour confirmer que le bot lit la commande
+    await ovl.react(ms, "🔎");
+
+    // Nettoyage du texte → enlever espaces, -, _, etc.
+    let clean = txt.replace(/[\s\-\_]/g, "")
+                   .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    let found = [];
+
+    for (const [placementKey, placementCards] of Object.entries(cards)) {
+        for (const c of placementCards) {
+            let cleanName = c.name.toLowerCase()
+                .replace(/[\s\-\_]/g, "")
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            if (cleanName.includes(clean)) {
+                found.push({ ...c, placement: placementKey });
+            }
+        }
+    }
+
+    if (found.length === 0)
+        return repondre("❌ Aucune carte ne correspond à : " + txt);
+
+    if (found.length > 1) {
+        // Optionnel : si plusieurs correspondances, prendre la première automatiquement
+        const card = found[0];
+        await ovl.sendMessage(ms_org, {
+            image: { url: card.image },
+            caption: `🎴 *${card.name}*`
+        }, { quoted: ms });
+        await ovl.react(ms, "✅");
+        return;
+    }
+
+    const card = found[0];
+
+    await ovl.sendMessage(ms_org, {
+        image: { url: card.image },
+        caption: `🎴 *${card.name}*`
+    }, { quoted: ms });
+
+    // Réaction de succès
+    await ovl.react(ms, "✅");
+
+} catch (e) {
+    console.log("❌ ERREUR +cards :", e);
+    return repondre("❌ Une erreur est survenue.");
+}
+
+});
